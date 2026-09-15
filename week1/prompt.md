@@ -103,3 +103,13 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 6.  **Go to your repo Settings -> Pages ->** Select source `Deploy from a branch` -> Branch `main` / `root` and click Save. Your page will be live at `https://[your-username].github.io/random-lunch-generator` in a minute.
 
 Would you like me to help you write the initial code for `index.html`, `style.css`, and `script.js` next?
+
+## Fixed prompt
+
+I need to code a random lunch menu recsys then publish it to GitHub Pages. Let's first write the description README.
+
+Constraints:
+- The page must load Font Awesome Free 6.4.0 from cdnjs (`https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css`).
+- Every icon class used in the code MUST exist in the Free set of that exact version. Before using an icon, verify that `all.min.css` ships a rule `.fa-<name>:before { content: "..." }` (e.g. fa-pasta, fa-bowl-hot and fa-bowl are not in the Free 6.4.0 CSS).
+- The result of a pick must read "Today's pick: <item>! 🥳".
+- Provide README.md plus the single-file `index.html` implementation.
