@@ -91,3 +91,24 @@ This file handles the user interface and the recommendation logic. It will depen
 
 ---
 Please now generate the complete code for the `index.html`, `style.css`, `data.js`, and `script.js` files based on these final, detailed specifications.
+
+---
+
+## Fixed prompt
+
+This revision corrects the defects found in the audit above and adds the profile-based mode.
+
+**`data.js`**
+1. Parse all 19 genre flags in the official ML-100K order (starting with `unknown`, ending with `Western`). Store per movie both `genres` (array of names) and `vector` (array of 19 numbers).
+2. Decode `u.item` as ISO-8859-1 via `TextDecoder('iso-8859-1')` on `response.arrayBuffer()`, not UTF-8.
+3. Skip the placeholder row id 267 (title `unknown`, empty release date/URL).
+4. Deduplicate titles: keep one row per title (the lowest id, i.e. the first occurrence). Do not exclude other movies that merely share a genre vector.
+
+**`script.js`**
+5. Replace the Jaccard index with cosine similarity over the 19-dimensional genre vectors: `dot / (|a| * |b|)`, guarding against zero norms.
+6. Item-to-item mode (existing dropdown and button): return the Top-5 results for a single liked movie.
+7. Profile mode: three dropdowns; the profile is the element-wise mean of the three selected vectors. Exclude the three watched movies from the candidate pool. Return the Top-5 results. Show an error if the same movie is selected twice.
+8. Sort ties by score descending, then by title ascending, and display each score (2 decimals) next to the title.
+
+**`index.html`**
+- Keep the existing item-to-item controls (one select + one button) and add a Profile Mode section with three movie selects and a second button that calls `getProfileRecommendations()`.

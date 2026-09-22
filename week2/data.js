@@ -2,23 +2,24 @@
 let movies = [];
 let ratings = [];
 
-// Genre names as defined in the u.item file
+// Genre names as defined in the u.item file (official ML-100K order, 19 genres)
 const genreNames = [
-    "Action", "Adventure", "Animation", "Children's", "Comedy",
-    "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir",
-    "Horror", "Musical", "Mystery", "Romance", "Sci-Fi",
-    "Thriller", "War", "Western"
+    "unknown", "Action", "Adventure", "Animation", "Children's",
+    "Comedy", "Crime", "Documentary", "Drama", "Fantasy",
+    "Film-Noir", "Horror", "Musical", "Mystery", "Romance",
+    "Sci-Fi", "Thriller", "War", "Western"
 ];
 
 // Primary function to load data from files
 async function loadData() {
     try {
-        // Load and parse movie data
+        // Load and parse movie data (decode u.item as ISO-8859-1, not UTF-8)
         const moviesResponse = await fetch('u.item');
         if (!moviesResponse.ok) {
             throw new Error(`Failed to load movie data: ${moviesResponse.status}`);
         }
-        const moviesText = await moviesResponse.text();
+        const moviesBuffer = await moviesResponse.arrayBuffer();
+        const moviesText = new TextDecoder('iso-8859-1').decode(moviesBuffer);
         parseItemData(moviesText);
 
         // Load and parse rating data
@@ -42,39 +43,51 @@ async function loadData() {
 // Parse movie data from u.item format
 function parseItemData(text) {
     const lines = text.split('\n');
-    
+    const seenTitles = new Set();
+
     for (const line of lines) {
         if (line.trim() === '') continue;
-        
+
         const fields = line.split('|');
-        if (fields.length < 5) continue; // Skip invalid lines
-        
+        if (fields.length < 24) continue; // Skip invalid lines (missing genre flags)
+
         const id = parseInt(fields[0]);
         const title = fields[1];
-        
-        // Extract genres (last 19 fields)
+
+        // Skip the placeholder row id 267 (title "unknown", empty release date/URL)
+        if (id === 267) continue;
+
+        // Duplicate titles: keep only the first (lowest id) occurrence
+        if (seenTitles.has(title)) continue;
+        seenTitles.add(title);
+
+        // Extract all 19 genre flags (official order: unknown, Action, ... , Western)
         const genreValues = fields.slice(5, 24).map(value => parseInt(value));
-        const genres = genreNames.filter((_, index) => genreValues[index] === 1);
-        
-        movies.push({ id, title, genres });
+        const genres = [];
+        const vector = genreValues.map((value, index) => {
+            if (value === 1) genres.push(genreNames[index]);
+            return value;
+        });
+
+        movies.push({ id, title, genres, vector });
     }
 }
 
 // Parse rating data from u.data format
 function parseRatingData(text) {
     const lines = text.split('\n');
-    
+
     for (const line of lines) {
         if (line.trim() === '') continue;
-        
+
         const fields = line.split('\t');
         if (fields.length < 4) continue; // Skip invalid lines
-        
+
         const userId = parseInt(fields[0]);
         const itemId = parseInt(fields[1]);
         const rating = parseFloat(fields[2]);
         const timestamp = parseInt(fields[3]);
-        
+
         ratings.push({ userId, itemId, rating, timestamp });
     }
 }

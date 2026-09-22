@@ -10,14 +10,30 @@
     <div class="container">
         <h1>Content-Based Movie Recommender</h1>
         <p>Select a movie you like, and we'll find similar ones for you!</p>
-        
+
         <div class="controls">
             <select id="movie-select">
                 <option value="" disabled selected>Select a movie</option>
             </select>
             <button id="recommend-btn" onclick="getRecommendations()">Get Recommendations</button>
         </div>
-        
+
+        <h2>Profile Mode</h2>
+        <p>Select three movies you have watched to build your profile.</p>
+
+        <div class="controls">
+            <select id="profile-select-1">
+                <option value="" disabled selected>Select watched movie 1</option>
+            </select>
+            <select id="profile-select-2">
+                <option value="" disabled selected>Select watched movie 2</option>
+            </select>
+            <select id="profile-select-3">
+                <option value="" disabled selected>Select watched movie 3</option>
+            </select>
+            <button id="profile-btn" onclick="getProfileRecommendations()">Get Profile Recommendations</button>
+        </div>
+
         <div id="result-box">
             <p id="result">Please wait, loading data...</p>
         </div>
