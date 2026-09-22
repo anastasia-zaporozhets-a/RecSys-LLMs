@@ -33,7 +33,7 @@ async function loadData() {
         console.error('Error loading data:', error);
         const resultElement = document.getElementById('result');
         if (resultElement) {
-            resultElement.textContent = `Error: ${error.message}. Please make sure u.item and u.data files are in the correct location.`;
+            resultElement.textContent = `Error: ${error.message}. This page must be served over HTTP: run "python3 -m http.server 8000" in the week2 folder and open http://localhost:8000.`;
             resultElement.className = 'error';
         }
         throw error; // Re-throw to allow script.js to handle the error
