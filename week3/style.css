@@ -110,6 +110,9 @@ p {
     }
 }
 
-.error {
+/* Matches `.result-column p` on colour, but outranks it on specificity so the
+   load-failure message is actually shown in red. */
+.result-column p.error {
     color: #e74c3c;
+    font-weight: bold;
 }

@@ -9,15 +9,12 @@ const path = require('path');
 const vm = require('vm');
 
 const WEEK3 = path.join(__dirname, '..');
-const ACTIVE_USER = 1;
-const N = 20;
+const ACTIVE_USERS = [1, 405];   // 1 = ordinary, 405 = largest profile (737 ratings)
 
 // ---------------------------------------------------------------------------
 // Browser stubs
 // ---------------------------------------------------------------------------
 
-// Minimal element. A <select> needs options[] / value / appendChild / remove,
-// which is exactly what populateUserDropdown() in script.js touches.
 function makeElement(id, tag) {
     return {
         id: id,
@@ -29,9 +26,7 @@ function makeElement(id, tag) {
             this.options.push(child);
             if (this.options.length === 1) this.value = child.value;
         },
-        remove(index) {
-            this.options.splice(index, 1);
-        }
+        remove(index) { this.options.splice(index, 1); }
     };
 }
 
@@ -51,7 +46,7 @@ const documentStub = {
         return Object.prototype.hasOwnProperty.call(elements, id) ? elements[id] : null;
     },
     createElement(tag) {
-        return { tagName: tag, value: '', textContent: '', appendChild(c) { this.child = c; } };
+        return { tagName: tag, value: '', textContent: '' };
     }
 };
 
@@ -62,16 +57,11 @@ function makeResponse(file) {
         ok: true,
         status: 200,
         url: 'file://' + file,
-        text() {
-            return Promise.resolve(buffer.toString('utf8'));
-        },
+        text() { return Promise.resolve(buffer.toString('utf8')); },
         arrayBuffer() {
             return Promise.resolve(
                 buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
             );
-        },
-        json() {
-            return Promise.resolve(JSON.parse(buffer.toString('utf8')));
         }
     };
 }
@@ -92,7 +82,15 @@ function fetchStub(url) {
 // One vm context, real sources
 // ---------------------------------------------------------------------------
 
-const sandbox = { console: console, fetch: fetchStub, document: documentStub };
+const sandbox = {
+    console: console,
+    fetch: fetchStub,
+    document: documentStub,
+    // Provided by the browser (and by Node) but not by a bare vm context.
+    TextDecoder: TextDecoder,
+    TextEncoder: TextEncoder,
+    URL: URL
+};
 sandbox.window = sandbox;          // script.js does `window.onload = ...`
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
@@ -103,161 +101,221 @@ for (const file of ['data.js', 'script.js']) {
 
 // `let`/`const` top-level bindings live in the context's global lexical scope,
 // not on the sandbox object, so re-export them from inside the context. They are
-// exposed as getters because `let` bindings are copied by value at export time
-// and would otherwise be frozen at their pre-loadData() initialisers.
+// exposed as getters: a `let` binding is copied by value at export time and
+// would otherwise be frozen at its pre-loadData() initialiser.
 vm.runInContext(
     'globalThis.__api = { ' +
     '  get movies() { return movies; }, get ratings() { return ratings; },' +
     '  get numUsers() { return numUsers; }, get numMovies() { return numMovies; },' +
     '  get ratingMatrix() { return ratingMatrix; },' +
-    '  loadData, buildRatingMatrix, cosineSimilarity, populateUserDropdown,' +
+    '  get canonicalId() { return canonicalId; }, get movieById() { return movieById; },' +
+    '  get genreNames() { return genreNames; },' +
+    '  get GAMMA() { return GAMMA; }, get LAMBDA() { return LAMBDA; }, get N() { return N; },' +
+    '  loadData, buildRatingMatrix, cosineSimilarity, meanRating, populateUserDropdown,' +
+    '  getMovieColumns, itemSimilarity, movieTitle,' +
     '  getUserBasedRecommendations, getItemBasedRecommendations, getRecommendations, renderList };',
     sandbox
 );
 const api = sandbox.__api;
 
 // ---------------------------------------------------------------------------
-// Boot through the real initialisation path
+// Reporting helpers
 // ---------------------------------------------------------------------------
 
-function heading(text) {
-    console.log('\n' + '='.repeat(78));
-    console.log(text);
-    console.log('='.repeat(78));
-}
+function rule(char) { return char.repeat(78); }
+function heading(text) { console.log('\n' + rule('=') + '\n' + text + '\n' + rule('=')); }
+const pad = (s, n) => String(s).padStart(n);
 
 (async function main() {
+    // -----------------------------------------------------------------------
     heading('BOOT  (real window.onload -> loadData() -> populateUserDropdown())');
+    // -----------------------------------------------------------------------
     await sandbox.onload();
 
-    const { movies, ratings, numUsers, numMovies, ratingMatrix, cosineSimilarity } = api;
-    console.log('movies parsed          :', movies.length);
-    console.log('ratings parsed         :', ratings.length);
-    console.log('numUsers / numMovies   :', numUsers, '/', numMovies);
-    console.log('ratingMatrix shape     :', ratingMatrix.length, 'x', ratingMatrix[0].length);
-    console.log('dropdown options       :', userSelect.options.length,
-        '(1 placeholder + ' + (userSelect.options.length - 1) + ' users)');
-    console.log('#user-based-result     :', JSON.stringify(elements['user-based-result'].innerHTML));
+    const { movies, ratings, numUsers, numMovies, ratingMatrix,
+            canonicalId, movieById, genreNames, GAMMA, LAMBDA, N } = api;
 
-    // Drive the real UI entry point exactly as the button does.
-    userSelect.value = String(ACTIVE_USER);
+    console.log('movies (one per title)   :', movies.length);
+    console.log('ratings (placeholder out):', ratings.length);
+    console.log('numUsers / numMovies     :', numUsers, '/', numMovies, '  (numMovies = max movie id)');
+    console.log('ratingMatrix shape       :', ratingMatrix.length, 'x', ratingMatrix[0].length);
+    console.log('genreNames declared      :', genreNames.length, '->', genreNames[0], '...', genreNames[genreNames.length - 1]);
+    console.log('canonical id != raw id   :', [...canonicalId.entries()].filter(([k, v]) => k !== v).length, 'ids remapped');
+    console.log('movieById size           :', movieById.size);
+    console.log('dropdown options         :', userSelect.options.length, '(1 placeholder + ' + (userSelect.options.length - 1) + ' users)');
+    console.log('GAMMA / LAMBDA / N       :', GAMMA, '/', LAMBDA, '/', N);
+
+    // --- C1: genre alignment spot-check on the real parser output -----------
+    const accented = movies.filter(m => m.title !== Buffer.from(m.title, 'utf8').toString('latin1')
+        && /[^\x00-\x7F]/.test(m.title));
+    console.log('\nC1/C2 spot-check  movie 543 :', JSON.stringify(movieById.get(543).title));
+    console.log('C1/C2 spot-check  movie 1633:', JSON.stringify(movieById.get(1633).title));
+    console.log('C2 titles with a replacement char (U+FFFD):',
+        movies.filter(m => m.title.includes('�')).length);
+    console.log('C3 movie 267 present in movieById:', movieById.has(267),
+        '| ratings for 267:', ratings.filter(r => r.itemId === 267).length);
+    const dupIds = [...canonicalId.entries()].filter(([k, v]) => k !== v);
+    const canon268 = canonicalId.get(268);
+    console.log('C4 duplicate ids remapped :', dupIds.length, '(e.g.', dupIds.slice(0, 3).map(([k, v]) => `${k}->${v}`).join(', ') + ')');
+    console.log('C4 canonicalId(268) =', canon268, '| canonicalId(246) =', canonicalId.get(246),
+        '| same movie record:', movieById.get(246) === movieById.get(268));
+    const dupRaw = ratings.filter(r => r.itemId === 246 || r.itemId === 268);
+    const merged = new Map();
+    for (const r of dupRaw) {
+        if (!merged.has(r.userId)) merged.set(r.userId, []);
+        merged.get(r.userId).push(r);
+    }
+    const mergedUsers = [...merged.entries()].filter(([, v]) => v.length === 2);
+    console.log('C4 users who rated BOTH copies:', mergedUsers.length);
+    if (mergedUsers.length) {
+        const [u0, pair] = mergedUsers[0];
+        const mean = (pair[0].rating + pair[1].rating) / 2;
+        console.log('C4 example user', u0, 'rated', pair[0].rating, 'and', pair[1].rating,
+            '-> matrix cell =', ratingMatrix[u0][canon268], '(mean =', mean + ')');
+    }
+
+    // -----------------------------------------------------------------------
+    for (const user of ACTIVE_USERS) {
+        const activeRow = ratingMatrix[user];
+        const userMean = api.meanRating(activeRow);
+        const ratedCount = activeRow.filter(v => v !== 0).length;
+
+        heading(`USER ${user}  (${ratedCount} ratings, mean ${userMean.toFixed(4)})`);
+
+        // -------------------------------------------------------------------
+        console.log(`\n--- (1) top-8 neighbours (significance-weighted sim desc, ties -> lower user id)`);
+        // -------------------------------------------------------------------
+        const ranked = [];
+        for (let otherId = 1; otherId <= numUsers; otherId++) {
+            if (otherId === user) continue;
+            const similarity = api.cosineSimilarity(activeRow, ratingMatrix[otherId]);
+            if (similarity > 0) ranked.push({ userId: otherId, similarity });
+        }
+        ranked.sort((a, b) => (b.similarity - a.similarity) || (a.userId - b.userId));
+        const top20 = ranked.slice(0, N);
+
+        const coRatedOf = id => {
+            let c = 0;
+            for (let j = 1; j <= numMovies; j++) {
+                if (activeRow[j] !== 0 && ratingMatrix[id][j] !== 0) c++;
+            }
+            return c;
+        };
+
+        console.log(' rank  user  similarity   co-rated');
+        for (let i = 0; i < 8; i++) {
+            const n = ranked[i];
+            console.log(pad(i + 1, 5), pad(n.userId, 6), pad(n.similarity.toFixed(10), 12),
+                pad(coRatedOf(n.userId), 10));
+        }
+        console.log(`\nN = ${N} neighbours used -> [${top20.map(n => n.userId).join(', ')}]`);
+        console.log('similarity of the 20th :', top20[N - 1].similarity.toFixed(10));
+
+        // Corrected tally (this is what the earlier summary got wrong)
+        const sim1 = top20.filter(n => n.similarity === 1);
+        const byCo = {};
+        for (const n of sim1) {
+            const c = coRatedOf(n.userId);
+            byCo[c] = (byCo[c] || 0) + 1;
+        }
+        console.log(`neighbours with similarity === 1 exactly : ${sim1.length} of ${N}`);
+        console.log('  ... grouped by co-rated count           :', JSON.stringify(byCo));
+        console.log('co-rated counts of all 20               :', top20.map(n => coRatedOf(n.userId)).join(', '));
+        console.log('weighted sim of the 20th is strictly < 1 :', top20[N - 1].similarity < 1);
+
+        // -------------------------------------------------------------------
+        console.log(`\n--- (2) USER-BASED top-5   score = (sum s*r + LAMBDA*mean_u) / (sum s + LAMBDA)`);
+        // -------------------------------------------------------------------
+        const ub = api.getUserBasedRecommendations(user);
+        console.log('    score   #nbrs that rated it   title');
+        ub.forEach(item => {
+            const id = [...movieById.entries()].find(([, m]) => m.title === item.title)[0];
+            const voters = top20.filter(n => ratingMatrix[n.userId][id] !== 0).length;
+            console.log(pad(item.score.toFixed(6), 10), pad(voters, 20), ' ' + item.title);
+        });
+
+        // -------------------------------------------------------------------
+        console.log(`\n--- (3) ITEM-BASED top-5  (columns + similarities cached)`);
+        // -------------------------------------------------------------------
+        const t0 = Date.now();
+        const ib = api.getItemBasedRecommendations(user);
+        const ibMs = Date.now() - t0;
+        console.log('    score   #ratings in u.data  because (top anchor)            title');
+        ib.forEach(item => {
+            const id = [...movieById.entries()].find(([, m]) => m.title === item.title)[0];
+            const total = ratings.filter(r => canonicalId.get(r.itemId) === canonicalId.get(id)).length;
+            console.log(pad(item.score.toFixed(6), 10), pad(total, 20), ' ' +
+                pad(item.because.slice(0, 32), 34), item.title);
+        });
+        const t1 = Date.now();
+        api.getItemBasedRecommendations(user);
+        console.log('item-based timing: first call ' + ibMs + ' ms, second (fully cached) ' + (Date.now() - t1) + ' ms');
+
+        // -------------------------------------------------------------------
+        console.log(`\n--- (4) FOR COMPARISON ONLY: the same item-based sums divided by sum of similarities`);
+        // -------------------------------------------------------------------
+        const t2 = Date.now();
+        const columns = api.getMovieColumns();
+        const raw = [];
+        for (let movieId = 1; movieId <= numMovies; movieId++) {
+            if (activeRow[movieId] !== 0) continue;
+            let num = 0, simSum = 0;
+            for (let ratedId = 1; ratedId <= numMovies; ratedId++) {
+                if (activeRow[ratedId] === 0) continue;
+                const s = api.cosineSimilarity(columns[ratedId], columns[movieId]);
+                num += s * activeRow[ratedId];
+                simSum += s;
+            }
+            if (simSum <= 0) continue;
+            raw.push({ id: movieId, title: api.movieTitle(movieId), score: num / simSum });
+        }
+        raw.sort((a, b) => (b.score - a.score) || (a.id - b.id));
+        console.log('    score   #ratings in u.data  title   (raw sum / sum of similarities)');
+        raw.slice(0, 5).forEach(item => {
+            const total = ratings.filter(r => canonicalId.get(r.itemId) === canonicalId.get(item.id)).length;
+            console.log(pad(item.score.toFixed(6), 10), pad(total, 20), ' ' + item.title);
+        });
+        console.log('(recomputed from the cached columns in ' + (Date.now() - t2) + ' ms)');
+
+        const shipped = new Set(ib.map(i => i.title));
+        const alt = raw.slice(0, 5).map(r => r.title);
+        console.log('\nshipped item-based top-5 :', ib.map(i => i.title).join(' | '));
+        console.log('alternative   top-5      :', alt.join(' | '));
+        console.log('overlap                  :', alt.filter(t => shipped.has(t)).length, 'of 5');
+
+        // -------------------------------------------------------------------
+        console.log('\n--- rendered panels (real getRecommendations() -> renderList)');
+        // -------------------------------------------------------------------
+        userSelect.value = String(user);
+        api.getRecommendations();
+        console.log('#user-based-result:');
+        console.log('  ' + elements['user-based-result'].innerHTML.replace(/<\/li>/g, '</li>\n  '));
+        console.log('#item-based-result:');
+        console.log('  ' + elements['item-based-result'].innerHTML.replace(/<\/li>/g, '</li>\n  '));
+    }
+
+    // -----------------------------------------------------------------------
+    heading('EMPTY-STATE MESSAGE (no user selected)');
+    // -----------------------------------------------------------------------
+    userSelect.value = '';
     api.getRecommendations();
-    console.log('\nreal getRecommendations() rendered:');
-    console.log('  #user-based-result ->', elements['user-based-result'].innerHTML.slice(0, 150) + '...');
-    console.log('  #item-based-result ->', elements['item-based-result'].innerHTML.slice(0, 150) + '...');
+    console.log('#user-based-result:', elements['user-based-result'].innerHTML);
+    console.log('#item-based-result:', elements['item-based-result'].innerHTML);
 
-    const activeRow = ratingMatrix[ACTIVE_USER];
-
-    // -----------------------------------------------------------------------
-    heading(`(1) USER-BASED step 1-2: top-8 neighbours of user ${ACTIVE_USER} (sim desc, ties -> lower user id)`);
-    // -----------------------------------------------------------------------
-    const ranked = [];
-    for (let otherId = 1; otherId <= numUsers; otherId++) {
-        if (otherId === ACTIVE_USER) continue;
-        const similarity = cosineSimilarity(activeRow, ratingMatrix[otherId]);
-        if (similarity > 0) ranked.push({ userId: otherId, similarity });
+    heading('LOAD-ERROR MESSAGE (both panels)');
+    // force a failure through the real showLoadError path
+    const originalFetch = sandbox.fetch;
+    sandbox.fetch = (url) => (String(url) === 'u.item'
+        ? Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve(''), arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) })
+        : originalFetch(url));
+    try {
+        await api.loadData();
+    } catch (e) {
+        console.log('loadData() rethrew as expected:', e.message);
     }
-    ranked.sort((a, b) => (b.similarity - a.similarity) || (a.userId - b.userId));
-
-    console.log(`active user ${ACTIVE_USER} rated ${activeRow.filter(v => v !== 0).length} of ${numMovies} movies`);
-    console.log('users with similarity > 0 :', ranked.length);
-    console.log('\n rank  user  similarity   co-rated');
-    for (let i = 0; i < 8; i++) {
-        const n = ranked[i];
-        let coRated = 0;
-        for (let j = 1; j <= numMovies; j++) {
-            if (activeRow[j] !== 0 && ratingMatrix[n.userId][j] !== 0) coRated++;
-        }
-        console.log(
-            String(i + 1).padStart(5),
-            String(n.userId).padStart(6),
-            n.similarity.toFixed(10).padStart(12),
-            String(coRated).padStart(10)
-        );
-    }
-    const top20 = ranked.slice(0, N);
-    console.log(`\nN = ${N} neighbours actually used -> user ids: [${top20.map(n => n.userId).join(', ')}]`);
-    const minCo = Math.min.apply(null, top20.map(n => {
-        let c = 0;
-        for (let j = 1; j <= numMovies; j++) if (activeRow[j] !== 0 && ratingMatrix[n.userId][j] !== 0) c++;
-        return c;
-    }));
-    console.log('similarity of the 20th neighbour :', top20[N - 1].similarity.toFixed(10));
-    console.log('fewest co-rated movies among those 20 :', minCo);
-
-    // -----------------------------------------------------------------------
-    heading(`(2) USER-BASED step 3-4: top-5 for user ${ACTIVE_USER}  [sum(s*r)/sum(s)]`);
-    // -----------------------------------------------------------------------
-    const ub = api.getUserBasedRecommendations(ACTIVE_USER);
-    console.log(' score       #neighbours  #ratings in u.data  title');
-    ub.forEach((item, i) => {
-        const movie = movies.find(m => m.title === item.title);
-        let voters = 0;
-        for (const n of top20) if (ratingMatrix[n.userId][movie.id] !== 0) voters++;
-        const total = ratings.filter(r => r.itemId === movie.id).length;
-        console.log(
-            item.score.toFixed(6).padStart(10),
-            String(voters).padStart(14),
-            String(total).padStart(20),
-            ' ' + item.title
-        );
-        if (i === ub.length - 1) return;
-    });
-
-    // -----------------------------------------------------------------------
-    heading(`(3) ITEM-BASED step 2-3: top-5 for user ${ACTIVE_USER}  [sum over rated i of sim(i,j)*rating(u,i)]`);
-    // -----------------------------------------------------------------------
-    const ib = api.getItemBasedRecommendations(ACTIVE_USER);
-    console.log(' score       #ratings in u.data  title');
-    ib.forEach(item => {
-        const movie = movies.find(m => m.title === item.title);
-        const total = ratings.filter(r => r.itemId === movie.id).length;
-        console.log(
-            item.score.toFixed(6).padStart(10),
-            String(total).padStart(20),
-            ' ' + item.title
-        );
-    });
-
-    // -----------------------------------------------------------------------
-    heading(`(4) FOR COMPARISON ONLY: same item-based scores divided by sum of similarities`);
-    // -----------------------------------------------------------------------
-    const columns = new Array(numMovies + 1);
-    for (let movieId = 1; movieId <= numMovies; movieId++) {
-        const column = new Array(numUsers + 1);
-        for (let userId = 0; userId <= numUsers; userId++) column[userId] = ratingMatrix[userId][movieId];
-        columns[movieId] = column;
-    }
-    const ratedIds = [];
-    for (let movieId = 1; movieId <= numMovies; movieId++) if (activeRow[movieId] !== 0) ratedIds.push(movieId);
-
-    const normalised = [];
-    for (let movieId = 1; movieId <= numMovies; movieId++) {
-        if (activeRow[movieId] !== 0) continue;
-        let sum = 0, simSum = 0;
-        for (const ratedId of ratedIds) {
-            const s = cosineSimilarity(columns[ratedId], columns[movieId]);
-            sum += s * activeRow[ratedId];
-            simSum += s;
-        }
-        normalised.push({ id: movieId, title: movies[movieId - 1].title, score: simSum === 0 ? 0 : sum / simSum });
-    }
-    normalised.sort((a, b) => (b.score - a.score) || (a.id - b.id));
-
-    console.log(' score       #ratings in u.data  title');
-    normalised.slice(0, 5).forEach(item => {
-        const total = ratings.filter(r => r.itemId === item.id).length;
-        console.log(
-            item.score.toFixed(6).padStart(10),
-            String(total).padStart(20),
-            ' ' + item.title
-        );
-    });
-    const ibIds = ib.map(t => movies.find(m => m.title === t.title).id);
-    const normIds = normalised.slice(0, 5).map(t => t.id);
-    console.log('\nun-normalised top-5 ids :', ibIds.join(', '));
-    console.log('normalised    top-5 ids :', normIds.join(', '));
-    console.log('overlap                  :', ibIds.filter(id => normIds.includes(id)).length, 'of 5');
+    console.log('#user-based-result:', elements['user-based-result'].innerHTML);
+    console.log('#item-based-result:', elements['item-based-result'].innerHTML);
+    console.log('\n.error specificity in style.css: .result-column p.error (0,2,1) beats .result-column p (0,1,1)');
 
     console.log('\ndone.');
 })().catch(err => {

@@ -3,9 +3,19 @@
 //
 // Missing-value strategy (see week3/readme.md section 6):
 //
-//   [x] use co-rated entries only
+//   [x] significance weighting: cos * min(n, GAMMA) / GAMMA, n = co-rated items
 //
+// Raw cosine over 1-5 ratings is exactly 1.0 for any single co-rated movie, so an
+// unweighted top-N collapses into a tie of one-movie "neighbours"; scaling by the
+// confidence in the estimate keeps genuinely co-rated pairs on top.
 // ---------------------------------------------------------------------------
+
+// A pair with >= GAMMA co-rated movies is weighted at full strength.
+const GAMMA = 50;
+// Shrinkage weight: predictions with little support fall back to the user's mean.
+const LAMBDA = 1;
+// How many neighbours user-based CF aggregates over.
+const N = 20;
 
 // Initialize the application when the window loads
 window.onload = async function() {
@@ -46,21 +56,20 @@ function populateUserDropdown() {
 }
 
 // ---------------------------------------------------------------------------
-// TODO (HW3) — cosine similarity between two rating vectors.
+// Cosine similarity between two rating vectors, significance-weighted.
 //
-// Compare only co-rated (non-zero) entries, per the missing-value strategy
-// you chose above. Return 0 when the denominator is 0 (that is, when the two
-// vectors share no rated items). See week3/readme.md section 5.3.
+// Missing values are 0 and are skipped, so "not rated" is never treated as a
+// score. The raw cosine is then down-weighted by how many entries it rests on
+// (significance weighting, Herlocker et al. 1999).
 //
-// Inputs: two arrays of equal length (slice the rating matrix column or row).
-// Output: a number in [0, 1].
+// Inputs: two arrays of equal length (a row, or a precomputed movie column).
+// Output: a number in [0, 1]; 0 when the two vectors share no rated items.
 // ---------------------------------------------------------------------------
 function cosineSimilarity(a, b) {
-    // Co-rated entries only: an entry counts only when BOTH vectors are non-zero,
-    // so "not rated" (0) is never mistaken for a real score.
     let dot = 0;
     let normA = 0;
     let normB = 0;
+    let coRated = 0;
 
     for (let i = 0; i < a.length; i++) {
         const x = a[i];
@@ -69,32 +78,49 @@ function cosineSimilarity(a, b) {
         dot += x * y;
         normA += x * x;
         normB += y * y;
+        coRated++;
     }
 
     const denominator = Math.sqrt(normA * normB);
     if (denominator === 0) return 0;   // the two vectors share no rated items
-    return dot / denominator;
+    return (dot / denominator) * (Math.min(coRated, GAMMA) / GAMMA);
+}
+
+// Mean of the ratings actually present in a rating row (0 = not rated).
+function meanRating(row) {
+    let sum = 0;
+    let count = 0;
+    for (let movieId = 1; movieId < row.length; movieId++) {
+        if (row[movieId] === 0) continue;
+        sum += row[movieId];
+        count++;
+    }
+    return count === 0 ? 0 : sum / count;
+}
+
+// Title for a raw movie id; duplicate ids resolve to the canonical record.
+function movieTitle(movieId) {
+    const movie = movieById.get(movieId);
+    return movie === undefined ? `Movie ${movieId}` : movie.title;
 }
 
 // ---------------------------------------------------------------------------
-// TODO (HW3) — User-Based CF.
+// User-Based CF.
 //
-// Return the top-K recommendations for the active user as an array of
-// { title, score }, sorted by score descending.
-//
-// Suggested steps (week3/readme.md section 5.4):
-//   1. compare the active user's rating vector against every other user
-//   2. take the N most similar users with positive similarity (e.g. N = 20)
-//   3. for each movie the active user has NOT rated, predict a score as the
-//      similarity-weighted average of those users' ratings
-//   4. sort and take the top K
+// Step 1: cosineSimilarity between the active user's row and every other row.
+// Step 2: keep the N most similar users with a positive similarity (ties break
+//         on the lower user id).
+// Step 3: for every movie the user has not rated, predict over the neighbours
+//         who rated it, shrunk toward the user's own mean:
+//             score = (sum(s*r) + LAMBDA*mean_u) / (sum(s) + LAMBDA)
+//         A candidate needs sum(s) > 0.
+// Step 4: sort by score descending, ties on the lower movie id.
+// Returns an array of { title, score }.
 // ---------------------------------------------------------------------------
 function getUserBasedRecommendations(activeUserId, topK = 5) {
-    const N = 20;
     const activeRow = ratingMatrix[activeUserId];
+    const userMean = meanRating(activeRow);
 
-    // Step 1 + 2: rank every other user by similarity, keep the N most similar
-    // ones with a strictly positive similarity. Ties break on the lower user id.
     const ranked = [];
     for (let otherId = 1; otherId <= numUsers; otherId++) {
         if (otherId === activeUserId) continue;
@@ -104,7 +130,6 @@ function getUserBasedRecommendations(activeUserId, topK = 5) {
     ranked.sort((a, b) => (b.similarity - a.similarity) || (a.userId - b.userId));
     const neighbours = ranked.slice(0, N);
 
-    // Step 3: similarity-weighted average over the neighbours that rated it.
     const candidates = [];
     for (let movieId = 1; movieId <= numMovies; movieId++) {
         if (activeRow[movieId] !== 0) continue;   // already rated -> not a candidate
@@ -117,37 +142,38 @@ function getUserBasedRecommendations(activeUserId, topK = 5) {
             weightedSum += neighbour.similarity * rating;
             similaritySum += neighbour.similarity;
         }
-        if (similaritySum === 0) continue;         // nobody in the neighbourhood rated it
+        if (similaritySum <= 0) continue;         // nobody in the neighbourhood rated it
 
         candidates.push({
             id: movieId,
-            title: movies[movieId - 1].title,
-            score: weightedSum / similaritySum
+            title: movieTitle(movieId),
+            score: (weightedSum + LAMBDA * userMean) / (similaritySum + LAMBDA)
         });
     }
 
-    // Step 4: highest predicted score first, ties on the lower movie id.
     candidates.sort((a, b) => (b.score - a.score) || (a.id - b.id));
     return candidates.slice(0, topK).map(({ title, score }) => ({ title, score }));
 }
 
 // ---------------------------------------------------------------------------
-// TODO (HW3) — Item-Based CF.
+// Item-Based CF.
 //
-// Return the top-K recommendations for the active user as an array of
-// { title, score }, sorted by score descending.
-//
-// Suggested steps (week3/readme.md section 5.5):
-//   1. for each movie the active user has rated, compute the item-item
-//      similarity against every other movie's rating column
-//   2. for each candidate movie the active user has NOT rated, aggregate the
-//      similarities from the rated movies, weighted by the user's rating
-//   3. sort and take the top K
+// The rating column of every movie is built once and cached, and item-item
+// similarities are memoised, so the matrix is never re-sliced per comparison.
+// For every movie the user has not rated:
+//     score = (sum over rated i of s*rating(u,i) + LAMBDA*mean_u)
+//             / (sum over rated i of s + LAMBDA),   s = cosineSimilarity(i, j)
+// A candidate needs sum(s) > 0. Sort by score descending, ties on the lower
+// movie id. Returns an array of { title, score, because }.
 // ---------------------------------------------------------------------------
-function getItemBasedRecommendations(activeUserId, topK = 5) {
-    const activeRow = ratingMatrix[activeUserId];
+let columnCache = null;
+let columnCacheFor = null;
+let itemSimilarityCache = new Map();
+let itemSimilarityCacheFor = null;
 
-    // Step 1: the rating "column" of each movie, i.e. one entry per user.
+// Rating column per movie (one entry per user), built at most once per matrix.
+function getMovieColumns() {
+    if (columnCacheFor === ratingMatrix) return columnCache;
     const columns = new Array(numMovies + 1);
     for (let movieId = 1; movieId <= numMovies; movieId++) {
         const column = new Array(numUsers + 1);
@@ -156,29 +182,67 @@ function getItemBasedRecommendations(activeUserId, topK = 5) {
         }
         columns[movieId] = column;
     }
+    columnCache = columns;
+    columnCacheFor = ratingMatrix;
+    return columnCache;
+}
+
+// Memoised item-item similarity, invalidated whenever the matrix is rebuilt.
+function itemSimilarity(ratedId, candidateId) {
+    if (itemSimilarityCacheFor !== ratingMatrix) {
+        itemSimilarityCache = new Map();
+        itemSimilarityCacheFor = ratingMatrix;
+    }
+    const key = ratedId * (numMovies + 1) + candidateId;
+    let similarity = itemSimilarityCache.get(key);
+    if (similarity === undefined) {
+        const columns = getMovieColumns();
+        similarity = cosineSimilarity(columns[ratedId], columns[candidateId]);
+        itemSimilarityCache.set(key, similarity);
+    }
+    return similarity;
+}
+
+function getItemBasedRecommendations(activeUserId, topK = 5) {
+    const activeRow = ratingMatrix[activeUserId];
+    const userMean = meanRating(activeRow);
 
     const ratedMovieIds = [];
     for (let movieId = 1; movieId <= numMovies; movieId++) {
         if (activeRow[movieId] !== 0) ratedMovieIds.push(movieId);
     }
 
-    // Step 2: aggregate, weighted by the user's own rating, the similarities
-    // between every movie the user rated and the candidate.
     const candidates = [];
     for (let movieId = 1; movieId <= numMovies; movieId++) {
         if (activeRow[movieId] !== 0) continue;   // already rated -> not a candidate
 
-        let score = 0;
-        for (const ratedId of ratedMovieIds) {
-            score += cosineSimilarity(columns[ratedId], columns[movieId]) * activeRow[ratedId];
-        }
+        let weightedSum = 0;
+        let similaritySum = 0;
+        let bestAnchorId = 0;
+        let bestContribution = -Infinity;
 
-        candidates.push({ id: movieId, title: movies[movieId - 1].title, score: score });
+        for (const ratedId of ratedMovieIds) {
+            const similarity = itemSimilarity(ratedId, movieId);
+            const contribution = similarity * activeRow[ratedId];
+            weightedSum += contribution;
+            similaritySum += similarity;
+            if (contribution > bestContribution) {
+                bestContribution = contribution;
+                bestAnchorId = ratedId;
+            }
+        }
+        if (similaritySum <= 0) continue;
+
+        candidates.push({
+            id: movieId,
+            title: movieTitle(movieId),
+            score: (weightedSum + LAMBDA * userMean) / (similaritySum + LAMBDA),
+            because: movieTitle(bestAnchorId)
+        });
     }
 
-    // Step 3: highest aggregated score first, ties on the lower movie id.
     candidates.sort((a, b) => (b.score - a.score) || (a.id - b.id));
-    return candidates.slice(0, topK).map(({ title, score }) => ({ title, score }));
+    return candidates.slice(0, topK).map(({ title, score, because }) => ({ title, score, because }));
 }
 
 // Provided — read the selected user and render both recommendation lists
@@ -187,31 +251,41 @@ function getRecommendations() {
     const userId = parseInt(selectElement.value, 10);
 
     if (isNaN(userId)) {
-        renderList('user-based-result', [], 'Please select a user first.');
-        renderList('item-based-result', [], 'Please select a user first.');
+        renderList('user-based-result', [], '', 'Please select a user first.');
+        renderList('item-based-result', [], '', 'Please select a user first.');
         return;
     }
 
-    renderList('user-based-result', getUserBasedRecommendations(userId));
-    renderList('item-based-result', getItemBasedRecommendations(userId));
+    renderList(
+        'user-based-result',
+        getUserBasedRecommendations(userId),
+        'Because you are similar to other users, we recommend:',
+        TOO_FEW_RATINGS
+    );
+    renderList('item-based-result', getItemBasedRecommendations(userId), '', TOO_FEW_RATINGS);
 }
 
-// Provided — render a list of { title, score } into the given element
-function renderList(elementId, items, message) {
-    const el = document.getElementById(elementId);
+const TOO_FEW_RATINGS = 'This user has too few ratings for a reliable recommendation list.';
 
-    if (message) {
-        el.innerHTML = `<p>${message}</p>`;
-        return;
-    }
+// Provided — render a list of { title, score } into the given element.
+// `message` is an optional lead-in shown above the list; `emptyMessage` is shown
+// instead of the list when there is nothing to recommend.
+function renderList(elementId, items, message, emptyMessage) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
 
     if (!items || items.length === 0) {
-        el.innerHTML = '<p>No recommendations. (Implement the TODO above.)</p>';
+        el.innerHTML = `<p>${emptyMessage || TOO_FEW_RATINGS}</p>`;
         return;
     }
 
     const entries = items
-        .map(item => `<li>${item.title} &mdash; ${Number(item.score).toFixed(3)}</li>`)
+        .map(item => {
+            const lead = item.because
+                ? `Because you liked ${item.because}, we recommend: `
+                : '';
+            return `<li>${lead}${item.title} &mdash; ${Number(item.score).toFixed(3)}</li>`;
+        })
         .join('');
-    el.innerHTML = `<ul>${entries}</ul>`;
+    el.innerHTML = (message ? `<p>${message}</p>` : '') + `<ul>${entries}</ul>`;
 }

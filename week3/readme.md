@@ -123,3 +123,130 @@ Do not mix strategies.
 
 ---
 Please now generate the complete code for the `index.html`, `style.css`, `data.js`, and `script.js` files based on these final, detailed specifications.
+
+---
+---
+
+# CORRECTED SPECIFICATION (binding — overrides sections 2–7 where they conflict)
+
+Sections 1–7 above describe the *original* assignment and contain several
+defects that a regenerated app would reproduce. The decisions below are
+**binding**. Where they contradict sections 2–7, they win.
+
+## C1. Genre names must be 19, not 18
+
+`u.item` has 24 pipe-separated fields: `id | title | release date | video release
+date | IMDb URL | <19 genre flags>`. The **first** genre flag is `unknown`.
+Defining only the 18 real genres shifts every flag by one, mislabels `unknown`
+as `Action`, and silently drops `Western` (26 films in this dataset).
+
+-   Declare **19** names in file order, starting with `"unknown"`:
+    `unknown, Action, Adventure, Animation, Children's, Comedy, Crime,
+    Documentary, Drama, Fantasy, Film-Noir, Horror, Musical, Mystery, Romance,
+    Sci-Fi, Thriller, War, Western`.
+-   Extract them from `fields.slice(5, 24)` and filter on `=== 1`, so the
+    name list and the flag list align 1:1.
+
+## C2. `u.item` is ISO-8859-1, not UTF-8
+
+`fetch().text()` always decodes as UTF-8 and would replace the accented titles
+(`Misérables`, `Cérémonie`, `Á köldum klaka`, …) with `U+FFFD`. Neither a
+`<meta charset>` nor a server header can change this.
+
+-   Read the bytes: `new TextDecoder('iso-8859-1').decode(await response.arrayBuffer())`.
+-   `u.data` is pure ASCII and may use `text()`.
+
+## C3. Drop the placeholder movie
+
+`u.item` row 267 has the title `unknown`, an empty release date and an empty
+IMDb URL, yet **9 real users rated it**. It must never be recommended.
+
+-   Skip rows whose title is empty or case-insensitively `unknown`.
+-   Drop any rating whose `itemId` is not a declared movie.
+
+## C4. Collapse duplicate titles onto a canonical id
+
+18 films are listed twice in `u.item` (e.g. `246`/`268` *Chasing Amy (1997)*),
+and up to **112 users rated both copies**. Keyed by raw id, copy B is a legal
+candidate for a user who already rated copy A, so the same film can be
+recommended twice under one title; and item-based CF would count it as two
+independent anchors, because the two columns have cosine ≈ 0.996.
+
+-   Map every duplicate id to the **lowest id with the same title** (canonical id).
+-   Keep **one** movie record per title.
+-   In the matrix, if a user rated both copies, store the **mean** of the two
+     ratings in the single canonical cell.
+
+## C5. `numMovies` is the max movie id, not the movie count
+
+The matrix is indexed by raw id, so its width must be `max(movieId) + 1`. Using
+`movies.length` silently breaks indexing as soon as any row is skipped or
+deduplicated.
+
+-   `numMovies = max movie id seen in u.item`.
+-   Expose a `movieById` map from raw id → movie record (duplicates resolve to
+    the canonical record) and resolve every displayed title through it.
+
+## C6. Load errors appear in both panels, in red
+
+-   Write the failure message into **both** `#user-based-result` and
+    `#item-based-result`; writing only one leaves the other stuck on
+    "Loading…" forever.
+-   The error class must **outrank** the generic paragraph rule. `.error` alone
+    (specificity 0,1,0) loses to `.result-column p` (0,1,1). Use
+    `.result-column p.error`.
+
+## C7. Missing-value strategy: significance weighting
+
+State exactly this one option in the header comment of `script.js`, and no
+other:
+
+```
+cosineSimilarity(a, b) = cos(a, b) restricted to co-rated entries
+                          * min(n, GAMMA) / GAMMA,   n = co-rated count
+```
+
+Reason: raw cosine over 1–5 ratings is **exactly 1.0 for any single co-rated
+movie**, so an unweighted top-N collapses into a tie of one-movie
+"neighbours" and the neighbourhood is decided by tie-break order. Divide by the
+sum of the weights instead of averaging over the *neighbour count*: the divisor
+`sum(s)` is per-candidate, so dividing by it reorders the results, and when only
+one anchor is non-zero it collapses to that anchor's raw rating.
+
+## C8. Shrink both predictions toward the user's own mean
+
+With `mean_u` = mean of the active user's ratings and `LAMBDA = 1`:
+
+```
+score = (sum(s * r) + LAMBDA * mean_u) / (sum(s) + LAMBDA)
+```
+
+-   **User-based:** sum over the `N = 20` neighbours **who rated that movie**
+    (ties in similarity broken by the lower user id).
+-   **Item-based:** sum over **all** movies the user rated, with `s = s(i, j)`.
+-   A candidate needs `sum(s) > 0`.
+-   Sort by score descending, ties on the **lower movie id**.
+-   Use the named constants `GAMMA = 50`, `LAMBDA = 1`, `N = 20`.
+
+## C9. Item-based CF must be precomputed and cached
+
+Computing a cosine per (rated movie, candidate) pair and re-slicing the matrix
+each time is ~1.17 × 10⁹ operations for a 737-rating user (≈ 42 s per click
+under JavaScriptCore; 738× the cost of user-based CF).
+
+-   Build each movie's rating column **once** and reuse it.
+-   Memoise item-item similarities in a `Map`.
+-   Invalidate both caches whenever `ratingMatrix` is rebuilt (e.g. key the cache
+    on the `ratingMatrix` reference).
+
+## C10. Render per section 5.6
+
+-   User-based panel, as a lead-in above the list:
+    `Because you are similar to other users, we recommend:`
+-   Item-based panel, **per recommendation** (the anchor differs per item):
+    `Because you liked <the rated movie contributing most to this
+    recommendation>, we recommend: <title> — <score>`
+-   Replace the placeholder empty-state text with a real message for users with
+    too few ratings.
+-   The cosine helper returns a value in **[0, 1]**; floating point can still
+    yield `1.0000000000000002`, so do not assert on it.
