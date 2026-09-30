@@ -1,14 +1,10 @@
 // ---------------------------------------------------------------------------
 // HW3 — Collaborative Filtering core
 //
-// Missing-value strategy (see week3/readme.md section 6). Choose EXACTLY ONE
-// and keep it consistent in cosineSimilarity below:
+// Missing-value strategy (see week3/readme.md section 6):
 //
-//   [ ] use co-rated entries only
-//   [ ] mean imputation
-//   [ ] weight similarity by the number of co-rated items
+//   [x] use co-rated entries only
 //
-// Delete the two you did not choose.
 // ---------------------------------------------------------------------------
 
 // Initialize the application when the window loads
@@ -60,8 +56,24 @@ function populateUserDropdown() {
 // Output: a number in [0, 1].
 // ---------------------------------------------------------------------------
 function cosineSimilarity(a, b) {
-    // your implementation here
-    return 0;
+    // Co-rated entries only: an entry counts only when BOTH vectors are non-zero,
+    // so "not rated" (0) is never mistaken for a real score.
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+        const x = a[i];
+        const y = b[i];
+        if (x === 0 || y === 0) continue;
+        dot += x * y;
+        normA += x * x;
+        normB += y * y;
+    }
+
+    const denominator = Math.sqrt(normA * normB);
+    if (denominator === 0) return 0;   // the two vectors share no rated items
+    return dot / denominator;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,8 +90,45 @@ function cosineSimilarity(a, b) {
 //   4. sort and take the top K
 // ---------------------------------------------------------------------------
 function getUserBasedRecommendations(activeUserId, topK = 5) {
-    // your implementation here
-    return [];
+    const N = 20;
+    const activeRow = ratingMatrix[activeUserId];
+
+    // Step 1 + 2: rank every other user by similarity, keep the N most similar
+    // ones with a strictly positive similarity. Ties break on the lower user id.
+    const ranked = [];
+    for (let otherId = 1; otherId <= numUsers; otherId++) {
+        if (otherId === activeUserId) continue;
+        const similarity = cosineSimilarity(activeRow, ratingMatrix[otherId]);
+        if (similarity > 0) ranked.push({ userId: otherId, similarity });
+    }
+    ranked.sort((a, b) => (b.similarity - a.similarity) || (a.userId - b.userId));
+    const neighbours = ranked.slice(0, N);
+
+    // Step 3: similarity-weighted average over the neighbours that rated it.
+    const candidates = [];
+    for (let movieId = 1; movieId <= numMovies; movieId++) {
+        if (activeRow[movieId] !== 0) continue;   // already rated -> not a candidate
+
+        let weightedSum = 0;
+        let similaritySum = 0;
+        for (const neighbour of neighbours) {
+            const rating = ratingMatrix[neighbour.userId][movieId];
+            if (rating === 0) continue;
+            weightedSum += neighbour.similarity * rating;
+            similaritySum += neighbour.similarity;
+        }
+        if (similaritySum === 0) continue;         // nobody in the neighbourhood rated it
+
+        candidates.push({
+            id: movieId,
+            title: movies[movieId - 1].title,
+            score: weightedSum / similaritySum
+        });
+    }
+
+    // Step 4: highest predicted score first, ties on the lower movie id.
+    candidates.sort((a, b) => (b.score - a.score) || (a.id - b.id));
+    return candidates.slice(0, topK).map(({ title, score }) => ({ title, score }));
 }
 
 // ---------------------------------------------------------------------------
@@ -96,8 +145,40 @@ function getUserBasedRecommendations(activeUserId, topK = 5) {
 //   3. sort and take the top K
 // ---------------------------------------------------------------------------
 function getItemBasedRecommendations(activeUserId, topK = 5) {
-    // your implementation here
-    return [];
+    const activeRow = ratingMatrix[activeUserId];
+
+    // Step 1: the rating "column" of each movie, i.e. one entry per user.
+    const columns = new Array(numMovies + 1);
+    for (let movieId = 1; movieId <= numMovies; movieId++) {
+        const column = new Array(numUsers + 1);
+        for (let userId = 0; userId <= numUsers; userId++) {
+            column[userId] = ratingMatrix[userId][movieId];
+        }
+        columns[movieId] = column;
+    }
+
+    const ratedMovieIds = [];
+    for (let movieId = 1; movieId <= numMovies; movieId++) {
+        if (activeRow[movieId] !== 0) ratedMovieIds.push(movieId);
+    }
+
+    // Step 2: aggregate, weighted by the user's own rating, the similarities
+    // between every movie the user rated and the candidate.
+    const candidates = [];
+    for (let movieId = 1; movieId <= numMovies; movieId++) {
+        if (activeRow[movieId] !== 0) continue;   // already rated -> not a candidate
+
+        let score = 0;
+        for (const ratedId of ratedMovieIds) {
+            score += cosineSimilarity(columns[ratedId], columns[movieId]) * activeRow[ratedId];
+        }
+
+        candidates.push({ id: movieId, title: movies[movieId - 1].title, score: score });
+    }
+
+    // Step 3: highest aggregated score first, ties on the lower movie id.
+    candidates.sort((a, b) => (b.score - a.score) || (a.id - b.id));
+    return candidates.slice(0, topK).map(({ title, score }) => ({ title, score }));
 }
 
 // Provided — read the selected user and render both recommendation lists

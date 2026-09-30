@@ -102,5 +102,13 @@ function parseRatingData(text) {
 // Store the result in the global variable `ratingMatrix`.
 // ---------------------------------------------------------------------------
 function buildRatingMatrix() {
-    // your implementation here
+    // Dense matrix: (numUsers + 1) rows x (numMovies + 1) columns, indexed by raw
+    // id, so that ratingMatrix[userId][movieId] === rating. Missing = 0.
+    ratingMatrix = [];
+    for (let userId = 0; userId <= numUsers; userId++) {
+        ratingMatrix[userId] = new Array(numMovies + 1).fill(0);
+    }
+    for (const r of ratings) {
+        ratingMatrix[r.userId][r.itemId] = r.rating;
+    }
 }
