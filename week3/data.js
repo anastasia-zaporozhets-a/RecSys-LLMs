@@ -63,7 +63,10 @@ async function loadData() {
 
 // Report a load failure in both result panels, never just one of them.
 function showLoadError(error) {
-    const message = `Error: ${error.message}. Please make sure u.item and u.data are in the correct location.`;
+    const message = `Error: ${error.message}. This page must be served over HTTP: run ` +
+        `"python3 -m http.server 8000" in the week3 folder and open ` +
+        `http://localhost:8000, or publish the folder to GitHub Pages. ` +
+        `Opening index.html directly as a file:// URL blocks fetch().`;
     for (const elementId of ['user-based-result', 'item-based-result']) {
         const target = document.getElementById(elementId);
         if (target) {
