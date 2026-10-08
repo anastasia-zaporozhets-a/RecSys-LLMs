@@ -184,8 +184,43 @@ function asIndex(basketsOrIndex) {
  * @returns {number} count(A) for a single-element `stocks`, count(A union B) for two.
  */
 function countItemset(basketsOrIndex, stocks) {
-  // TODO(hw4): intersect the posting lists and return the number of baskets.
-  throw new Error("TODO(hw4): countItemset is not implemented yet.");
+  const index = asIndex(basketsOrIndex);
+
+  // Dedupe the request first: a stock listed twice must not be intersected twice.
+  const requested = [];
+  const seen = new Set();
+  for (const entry of stocks || []) {
+    const stock = stockOf(entry);
+    if (stock === undefined || stock === null || seen.has(stock)) continue;
+    seen.add(stock);
+    requested.push(stock);
+  }
+  if (requested.length === 0) return 0;
+
+  // A stock absent from the dataset contributes an empty posting list.
+  let smallest = null;
+  for (const stock of requested) {
+    const posting = index.byStock.get(stock);
+    if (!posting) return 0;
+    if (smallest === null || posting.size < smallest.size) smallest = posting;
+  }
+  if (requested.length === 1) return smallest.size;
+
+  // Walk the smallest posting list and test membership in every other one.
+  let count = 0;
+  for (const basketId of smallest) {
+    let inAll = true;
+    for (const stock of requested) {
+      const posting = index.byStock.get(stock);
+      if (posting === smallest) continue;
+      if (!posting.has(basketId)) {
+        inAll = false;
+        break;
+      }
+    }
+    if (inAll) count += 1;
+  }
+  return count;
 }
 
 /**
@@ -228,8 +263,15 @@ function countPair(basketsOrIndex, stockA, stockB) {
  * @returns {Array<string>} unique stock codes, in first-appearance order.
  */
 function dedupeBasket(rawItems) {
-  // TODO(hw4): return the unique stock codes in first-appearance order.
-  throw new Error("TODO(hw4): dedupeBasket is not implemented yet.");
+  const unique = [];
+  const seen = new Set();
+  for (const item of rawItems || []) {
+    const stock = stockOf(item);
+    if (stock === undefined || stock === null || seen.has(stock)) continue;
+    seen.add(stock);
+    unique.push(stock);
+  }
+  return unique;
 }
 
 /**
@@ -246,8 +288,8 @@ function dedupeBasket(rawItems) {
  * @returns {{value: number, defined: boolean}} `defined` is false when `n === 0`.
  */
 function computeSupport(jointCount, n) {
-  // TODO(hw4): support = jointCount / n, undefined when n === 0.
-  throw new Error("TODO(hw4): computeSupport is not implemented yet.");
+  if (!(n > 0)) return { value: 0, defined: false };
+  return { value: jointCount / n, defined: true };
 }
 
 /**
@@ -265,8 +307,8 @@ function computeSupport(jointCount, n) {
  * @returns {{value: number, defined: boolean}}
  */
 function computeConfidence(jointCount, antecedentCount) {
-  // TODO(hw4): confidence = jointCount / antecedentCount, undefined when count(A) === 0.
-  throw new Error("TODO(hw4): computeConfidence is not implemented yet.");
+  if (!(antecedentCount > 0)) return { value: 0, defined: false };
+  return { value: jointCount / antecedentCount, defined: true };
 }
 
 /**
@@ -287,8 +329,11 @@ function computeConfidence(jointCount, antecedentCount) {
  * @returns {{value: number, defined: boolean}}
  */
 function computeLift(confidence, consequentCount, n) {
-  // TODO(hw4): lift = confidence / (consequentCount / n), guarded.
-  throw new Error("TODO(hw4): computeLift is not implemented yet.");
+  if (!confidence || confidence.defined !== true) return { value: 0, defined: false };
+  if (!(n > 0)) return { value: 0, defined: false };
+  const baseline = consequentCount / n;
+  if (baseline === 0) return { value: 0, defined: false };
+  return { value: confidence.value / baseline, defined: true };
 }
 
 /**
@@ -333,8 +378,125 @@ function validateThresholds(minSupport, minConfidence) {
  * @returns {Array<{items: string[], count: number, support: number}>} frequent itemsets
  */
 function findFrequentItemsets(transactions, minSupport) {
-  // TODO(hw4): implement Apriori (or an equivalent frequent-itemset miner).
-  throw new Error("TODO(hw4): findFrequentItemsets is not implemented yet.");
+  const frequent = [];
+  const baskets = Array.isArray(transactions) ? transactions : [];
+  const n = baskets.length;
+  if (n === 0) return frequent;
+
+  // Smallest basket count that still satisfies count / n >= minSupport.
+  const minCount = Math.max(1, Math.ceil(minSupport * n - 1e-9));
+  const SEP = "\u0000";
+
+  const cmpItems = (a, b) => {
+    const limit = a.length < b.length ? a.length : b.length;
+    for (let i = 0; i < limit; i += 1) {
+      if (a[i] < b[i]) return -1;
+      if (a[i] > b[i]) return 1;
+    }
+    return a.length - b.length;
+  };
+
+  // Vertical layout: stock -> ascending basket ids, one entry per basket.
+  const postings = new Map();
+  for (let basketId = 0; basketId < n; basketId += 1) {
+    const basket = baskets[basketId];
+    if (!basket) continue;
+    const seen = new Set();
+    for (let t = 0; t < basket.length; t += 1) {
+      const stock = stockOf(basket[t]);
+      if (stock === undefined || stock === null || seen.has(stock)) continue;
+      seen.add(stock);
+      let list = postings.get(stock);
+      if (list === undefined) {
+        list = [];
+        postings.set(stock, list);
+      }
+      list.push(basketId);
+    }
+  }
+
+  // Multi-way intersection of ascending id arrays. The pointer of each list only
+  // ever moves forward, so a full pass costs O(sum of list lengths).
+  const countIntersection = (stocks) => {
+    let seedIndex = 0;
+    for (let i = 1; i < stocks.length; i += 1) {
+      if (postings.get(stocks[i]).length < postings.get(stocks[seedIndex]).length) {
+        seedIndex = i;
+      }
+    }
+    const seed = postings.get(stocks[seedIndex]);
+    const pointers = new Array(stocks.length).fill(0);
+    let count = 0;
+    for (let t = 0; t < seed.length; t += 1) {
+      const basketId = seed[t];
+      let inAll = true;
+      for (let i = 0; i < stocks.length; i += 1) {
+        if (i === seedIndex) continue;
+        const list = postings.get(stocks[i]);
+        let pointer = pointers[i];
+        while (pointer < list.length && list[pointer] < basketId) pointer += 1;
+        pointers[i] = pointer;
+        if (pointer >= list.length) return count;
+        if (list[pointer] !== basketId) {
+          inAll = false;
+          break;
+        }
+      }
+      if (inAll) count += 1;
+    }
+    return count;
+  };
+
+  // L1: single stocks whose own posting list already meets the threshold.
+  let level = [];
+  for (const [stock, list] of postings) {
+    if (list.length >= minCount) {
+      level.push({ items: [stock], key: stock, count: list.length });
+    }
+  }
+  level.sort((a, b) => cmpItems(a.items, b.items));
+
+  while (level.length > 0) {
+    for (const itemset of level) {
+      frequent.push({ items: itemset.items, count: itemset.count, support: itemset.count / n });
+    }
+
+    const size = level[0].items.length;
+    const previousKeys = new Set(level.map((itemset) => itemset.key));
+    const next = [];
+
+    for (let i = 0; i < level.length; i += 1) {
+      const left = level[i].items;
+      for (let j = i + 1; j < level.length; j += 1) {
+        const right = level[j].items;
+        let shared = 0;
+        while (shared < size - 1 && left[shared] === right[shared]) shared += 1;
+        // Levels are sorted lexicographically, so once the prefix diverges no
+        // later entry can share it either.
+        if (shared < size - 1) break;
+
+        const tail = right[size - 1];
+        const candidate = left.concat([tail]);
+        const candidateKey = level[i].key + SEP + tail;
+
+        // Downward closure: every size-`size` subset must already be frequent.
+        let pruned = false;
+        for (let drop = 0; drop <= size - 2 && !pruned; drop += 1) {
+          const subset = candidate.filter((_, index) => index !== drop);
+          if (!previousKeys.has(subset.join(SEP))) pruned = true;
+        }
+        if (pruned) continue;
+
+        const count = countIntersection(candidate);
+        if (count >= minCount) next.push({ items: candidate, key: candidateKey, count });
+      }
+    }
+
+    next.sort((a, b) => cmpItems(a.items, b.items));
+    level = next;
+  }
+
+  return frequent;
 }
 
 /**
@@ -360,9 +522,85 @@ function findFrequentItemsets(transactions, minSupport) {
  * @returns {Rule[]}
  */
 function generateRules(frequentItemsets, minConfidence) {
-  // TODO(hw4): generate candidate rules from each frequent itemset, compute
-  // confidence in both directions, then keep the rules that pass the threshold.
-  throw new Error("TODO(hw4): generateRules is not implemented yet.");
+  const rules = [];
+  const itemsets = Array.isArray(frequentItemsets) ? frequentItemsets : [];
+  if (itemsets.length === 0) return rules;
+
+  const SEP = "\u0000";
+
+  // count(X) for every frequent itemset, keyed by its canonical (sorted) form.
+  const counts = new Map();
+  const parents = new Set();
+  let reference = null;
+  for (const itemset of itemsets) {
+    if (!itemset || !Array.isArray(itemset.items)) continue;
+    const items = itemset.items.slice().sort();
+    counts.set(items.join(SEP), itemset.count);
+    if (
+      typeof itemset.support === "number" &&
+      itemset.support > 0 &&
+      itemset.count > 0 &&
+      (reference === null || itemset.count > reference.count)
+    ) {
+      reference = itemset;
+    }
+  }
+
+  // N = count / support for the largest itemset (most precise); fall back to the
+  // dataset-wide N so lift is still defined for an empty or degenerate input.
+  const n = reference ? Math.round(reference.count / reference.support) : N;
+
+  for (const itemset of itemsets) {
+    if (!itemset || !Array.isArray(itemset.items)) continue;
+    const items = itemset.items.slice().sort();
+    const size = items.length;
+    if (size < 2) continue;
+
+    const parentKey = items.join(SEP);
+    if (parents.has(parentKey)) continue;
+    parents.add(parentKey);
+
+    const jointCount = itemset.count;
+    const support = itemset.support;
+    const powers = [];
+    for (let i = 0; i < size; i += 1) powers.push(Math.pow(2, i));
+    const combinations = Math.pow(2, size);
+
+    // Every non-empty proper subset as antecedent, the rest as consequent:
+    // 2^k - 2 bipartitions per k-itemset, each emitted once (A -> B and B -> A
+    // are two different subsets, so both directions are covered).
+    for (let mask = 1; mask < combinations - 1; mask += 1) {
+      const antecedent = [];
+      const consequent = [];
+      for (let i = 0; i < size; i += 1) {
+        if (Math.floor(mask / powers[i]) % 2 === 1) antecedent.push(items[i]);
+        else consequent.push(items[i]);
+      }
+
+      // Downward closure guarantees both halves are frequent, hence present.
+      const antecedentCount = counts.get(antecedent.join(SEP));
+      const consequentCount = counts.get(consequent.join(SEP));
+      if (antecedentCount === undefined || consequentCount === undefined) continue;
+
+      const confidence = jointCount / antecedentCount;
+      if (!(confidence >= minConfidence)) continue;
+      const lift = confidence / (consequentCount / n);
+
+      rules.push({
+        antecedent,
+        consequent,
+        jointCount,
+        antecedentCount,
+        consequentCount,
+        support,
+        confidence,
+        lift,
+      });
+    }
+  }
+
+  rules.sort((a, b) => b.lift - a.lift || b.confidence - a.confidence);
+  return rules;
 }
 
 // ---------------------------------------------------------------------------
