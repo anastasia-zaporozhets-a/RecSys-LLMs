@@ -692,7 +692,7 @@ function tinyWorkedExample() {
 function enrichRule(rule, index) {
   const antecedent = (rule.antecedent || []).map(stockOf);
   const consequent = (rule.consequent || []).map(stockOf);
-  const n = index.n || N;
+  const n = index.n;
   const jointCount =
     typeof rule.jointCount === "number"
       ? rule.jointCount
@@ -727,8 +727,9 @@ function enrichRule(rule, index) {
 /**
  * Swap the antecedent and consequent of a rule and recompute the metrics.
  *
- * Confidence is not symmetric, so `B -> A` usually has a different confidence
- * and support value from `A -> B` even though lift is unchanged.
+ * Support is symmetric: both directions share the same joint count and the same
+ * `n`. Lift is symmetric too. Only confidence changes with direction, because it
+ * divides by `count(A)` on the left-hand side.
  *
  * @param {Rule} rule
  * @param {BasketIndex} index
@@ -876,9 +877,9 @@ function renderResults(rules, index, container) {
           <td class="num">${enriched.jointCount}</td>
           <td class="num">${enriched.antecedentCount}</td>
           <td class="num">${enriched.consequentCount}</td>
-          <td class="num">${formatPercent(enriched.support)}</td>
-          <td class="num">${formatPercent(enriched.confidence)}</td>
-          <td class="num">${formatMetric(enriched.lift)}</td>
+          <td class="num">${enriched.supportDefined === false ? "undefined" : formatPercent(enriched.support)}</td>
+          <td class="num">${enriched.confidenceDefined === false ? "undefined" : formatPercent(enriched.confidence)}</td>
+          <td class="num">${enriched.liftDefined === false ? "undefined" : formatMetric(enriched.lift)}</td>
         </tr>`;
     })
     .join("");
@@ -957,15 +958,17 @@ function renderRuleDetail(rule, index, container) {
       <dt>count(A∪B)</dt><dd class="num">${enriched.jointCount}</dd>
       <dt>count(A)</dt><dd class="num">${enriched.antecedentCount}</dd>
       <dt>count(B)</dt><dd class="num">${enriched.consequentCount}</dd>
-      <dt>support</dt><dd class="num">${formatPercent(enriched.support)}</dd>
-      <dt>confidence</dt><dd class="num">${formatPercent(enriched.confidence)}</dd>
-      <dt>lift</dt><dd class="num">${formatMetric(enriched.lift)}</dd>
+      <dt>support</dt><dd class="num">${enriched.supportDefined === false ? "undefined" : formatPercent(enriched.support)}</dd>
+      <dt>confidence</dt><dd class="num">${enriched.confidenceDefined === false ? "undefined" : formatPercent(enriched.confidence)}</dd>
+      <dt>lift</dt><dd class="num">${enriched.liftDefined === false ? "undefined" : formatMetric(enriched.lift)}</dd>
     </dl>
     <p class="comparison">
       Reverse direction (B → A): confidence
-      <strong>${formatPercent(reversed.confidence)}</strong>, lift
-      <strong>${formatMetric(reversed.lift)}</strong>.
-      Confidence changes with direction; lift does not.
+      <strong>${reversed.confidenceDefined === false ? "undefined" : formatPercent(reversed.confidence)}</strong>, lift
+      <strong>${reversed.liftDefined === false ? "undefined" : formatMetric(reversed.lift)}</strong>.
+      ${enriched.antecedentCount === enriched.consequentCount
+        ? "Confidence is the same in both directions because count(A) = count(B); lift does not change."
+        : "Confidence changes with direction; lift does not."}
     </p>
     ${noteHtml}
     <button type="button" id="reverse-rule">Reverse direction (B → A)</button>
@@ -1195,6 +1198,96 @@ function runTests(logElement) {
     return `${rules.length} rules`;
   });
 
+  const ruleKey = (stocks) => stocks.slice().sort().join("|");
+
+  // 12. Hand-computed Apriori answer: exactly nine itemsets at support >= 0.4.
+  check("findFrequentItemsets matches the 9 hand-computed fixture itemsets", () => {
+    const expected = [
+      { items: ["bread"], count: 5 },
+      { items: ["milk"], count: 3 },
+      { items: ["jam"], count: 3 },
+      { items: ["eggs"], count: 2 },
+      { items: ["bread", "milk"], count: 3 },
+      { items: ["bread", "jam"], count: 3 },
+      { items: ["bread", "eggs"], count: 2 },
+      { items: ["jam", "milk"], count: 2 },
+      { items: ["bread", "jam", "milk"], count: 2 },
+    ];
+    const problems = [];
+    const actual = new Map();
+    for (const set of findFrequentItemsets(basketObjects, 0.4)) {
+      actual.set(ruleKey(set.items), set);
+    }
+    if (actual.size !== expected.length) {
+      problems.push(`returned ${actual.size} itemsets, expected ${expected.length}`);
+    }
+    for (const { items, count } of expected) {
+      const key = ruleKey(items);
+      const set = actual.get(key);
+      if (!set) {
+        problems.push(`missing [${items.join(", ")}]`);
+        continue;
+      }
+      if (set.count !== count) problems.push(`[${items.join(", ")}] count ${set.count}, expected ${count}`);
+      if (Math.abs(set.support - count / example.n) > 1e-12) {
+        problems.push(`[${items.join(", ")}] support ${set.support}, expected ${count / example.n}`);
+      }
+    }
+    if (problems.length) throw new Error(problems.join("; "));
+    return "4 singles + 4 pairs + 1 triple, counts and supports correct";
+  });
+
+  // 13. Thresholds are honoured and every pair is emitted in both directions.
+  check("generateRules meets both thresholds and yields both directions per pair", () => {
+    const problems = [];
+    const itemsets = findFrequentItemsets(basketObjects, 0.2);
+    const rules = generateRules(itemsets, 0.5);
+    const all = generateRules(itemsets, 0);
+    const kept = new Set(rules.map((r) => `${ruleKey(r.antecedent)}>${ruleKey(r.consequent)}`));
+    const seen = new Set(all.map((r) => `${ruleKey(r.antecedent)}>${ruleKey(r.consequent)}`));
+
+    for (const rule of rules) {
+      if (!(rule.support >= 0.2 - 1e-12)) problems.push(`support ${rule.support} < 0.2`);
+      if (!(rule.confidence >= 0.5 - 1e-12)) problems.push(`confidence ${rule.confidence} < 0.5`);
+    }
+    // Both directions are enumerated for every 2-itemset, and the confidence
+    // filter keeps exactly those directions whose confidence reaches 0.5.
+    for (const set of itemsets.filter((s) => s.items.length === 2)) {
+      const [a, b] = set.items.slice().sort();
+      if (!seen.has(`${a}>${b}`) || !seen.has(`${b}>${a}`)) {
+        problems.push(`pair ${a} + ${b} did not yield both directions`);
+      }
+    }
+    for (const rule of all) {
+      const id = `${ruleKey(rule.antecedent)}>${ruleKey(rule.consequent)}`;
+      const passes = rule.confidence >= 0.5 - 1e-12;
+      if (passes !== kept.has(id)) {
+        problems.push(`${id} ${passes ? "should have been kept" : "should have been dropped"}`);
+      }
+    }
+    if (problems.length) throw new Error(problems.slice(0, 5).join("; "));
+    return `${rules.length} rules pass both thresholds; every pair emitted A->B and B->A`;
+  });
+
+  // 14. lift(A -> B) === lift(B -> A), against the counts, within 1e-12.
+  check("lift is symmetric under direction reversal (fixture)", () => {
+    const itemsets = findFrequentItemsets(basketObjects, 0.2);
+    const rules = generateRules(itemsets, 0);
+    const index = new Map(rules.map((r) => [`${ruleKey(r.antecedent)}>${ruleKey(r.consequent)}`, r]));
+    for (const rule of rules) {
+      const reverse = index.get(`${ruleKey(rule.consequent)}>${ruleKey(rule.antecedent)}`);
+      if (!reverse) throw new Error(`reverse of ${ruleKey(rule.antecedent)}>${ruleKey(rule.consequent)} is missing`);
+      if (Math.abs(rule.lift - reverse.lift) > 1e-12) {
+        throw new Error(`lift ${rule.lift} vs ${reverse.lift} for ${rule.jointCount} joint baskets`);
+      }
+      const hand = (rule.jointCount / rule.antecedentCount) / (rule.consequentCount / example.n);
+      if (Math.abs(rule.lift - hand) > 1e-12) {
+        throw new Error(`lift ${rule.lift} != hand-computed ${hand}`);
+      }
+    }
+    return `${rules.length} rules checked within 1e-12`;
+  });
+
   const passed = checks.filter((c) => c.status === "PASS").length;
   const failed = checks.filter((c) => c.status === "FAIL").length;
   const pendingCount = checks.filter((c) => c.status === "PENDING").length;
@@ -1278,7 +1371,8 @@ function runPipeline() {
     const itemsets = findFrequentItemsets(TRANSACTIONS, minSupport);
     const rules = generateRules(itemsets, minConfidence);
     renderResults(rules, DATASET_INDEX);
-    if (status) status.textContent = `Done — ${rules.length} rule(s) at support \u2265 ${(minSupport * 100).toFixed(1)}% and confidence \u2265 ${(minConfidence * 100).toFixed(0)}%.`;
+    const liftGt1 = rules.filter((rule) => rule.lift > 1).length;
+    if (status) status.textContent = `Done — ${rules.length} rule(s) at support \u2265 ${(minSupport * 100).toFixed(1)}% and confidence \u2265 ${(minConfidence * 100).toFixed(0)}%; of which lift > 1: ${liftGt1}.`;
   } catch (error) {
     const message = String(error && error.message ? error.message : error);
     const resultsEl = document.getElementById("results");
@@ -1329,8 +1423,8 @@ function init() {
     const summary = document.getElementById("dataset-summary-body");
     if (summary) {
       summary.innerHTML =
-        '<p class="empty-state">Implement the TODO(hw4) functions to activate ' +
-        "the dataset summary.</p>";
+        '<p class="empty-state">The dataset summary could not be rendered. ' +
+        `Error: ${escapeHtml(String(error && error.message ? error.message : error))}</p>`;
     }
   }
   if (status) {

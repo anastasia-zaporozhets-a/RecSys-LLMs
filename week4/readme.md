@@ -272,3 +272,41 @@ section rather than claiming verification you did not perform.
 ---
 
 *Generated 2026-09-29 from HW4 work order.*
+
+---
+
+## 9. Corrected prompt (A04)
+
+Addendum to the requirements above. Where it disagrees with an earlier wording
+in this file, this section wins. It pins the five points the audit corrected:
+
+1. **All non-empty bipartitions (§4.1 item 5).** `generateRules` must emit
+   `2^k − 2` directed rules for every frequent `k`-itemset: every non-empty
+   proper subset as the antecedent and its complement as the consequent, in both
+   directions (`A → B` and `B → A` are two distinct bipartitions). "Both ways"
+   therefore means the full split enumeration — not only "single item vs. the
+   rest", and not only the pair count — for `k ≥ 3` as well.
+
+2. **Three zero denominators, not two (§4.1 item 8).** A metric is undefined
+   when `N = 0` (support **and** lift), when `count(A) = 0` (confidence), and
+   when `count(B) = 0` (lift). The detail panel must show an explicit inline
+   note for each case, and an undefined metric must be printed as `undefined` —
+   never as `0.00%`, `0.0000`, `Infinity`, or `NaN`.
+
+3. **The lift > 1 status line (§4.1 item 6).** The Rules table keeps exactly
+   the rules that satisfy **both** slider thresholds; it is not filtered by
+   lift. The lift `> 1` filter is a reporting step: after each run the status
+   line reports the table size **and** `of which lift > 1: X`, so the retained
+   subset is visible without recomputing anything.
+
+4. **Shared-description caveat.** 26 descriptions are shared by more than one
+   stock code — 54 codes in total (24 descriptions used by 2 codes, 2 used by
+   3 codes). Rules are keyed by **stock code**, not by description, so
+   near-identical items (e.g. `84279P` and `84279B`) can appear as separate
+   nodes of the graph. Treat such rules as measurement artefacts before drawing
+   a business conclusion from them.
+
+5. **The stability check is a plan only (§4.2 item 6).** The exported dataset
+   has no per-basket timestamp, so no time split can be computed from it. Do
+   not simulate temporal data: the temporal-stability check is written as a
+   plan to run on a later period, and it stays a plan in the report.
