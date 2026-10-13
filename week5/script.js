@@ -428,8 +428,8 @@ function initializeFactors(train, numFactors = NUM_FACTORS) {
 
   const maxMovieId = movies.reduce((m, x) => Math.max(m, x.id), 0);
   model = {
-    userFactors: tf.variable(tf.randomNormal([numUsers + 1, numFactors], 0, 0.05)),
-    itemFactors: tf.variable(tf.randomNormal([maxMovieId + 1, numFactors], 0, 0.05)),
+    userFactors: tf.variable(tf.randomNormal([numUsers + 1, numFactors], 0, 0.05, 'float32', 42)),
+    itemFactors: tf.variable(tf.randomNormal([maxMovieId + 1, numFactors], 0, 0.05, 'float32', 43)),
     globalMean,
   };
   return model;
@@ -485,7 +485,12 @@ function initializeFactors(train, numFactors = NUM_FACTORS) {
  * @returns {HistoryRow[]}
  */
 function trainMF(train, val, opts) {
-  if (!train || train.length === 0) return trainingHistory;
+  if (!train || train.length === 0) {
+    trainingHistory = [];
+    return trainingHistory;
+  }
+
+  trainingHistory = [];
 
   const { epochs, lr, reg, batchSize } = opts;
   const optimizer = tf.train.adam(lr);
@@ -501,7 +506,22 @@ function trainMF(train, val, opts) {
     });
   }
 
+  let bestValRMSE = Infinity;
+  let bestUserFactors = null;
+  let bestItemFactors = null;
+
+  let seed = 12345;
+  const lcg = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed;
+  };
+
   for (let epoch = 1; epoch <= epochs; epoch++) {
+    for (let i = batches.length - 1; i > 0; i--) {
+      const j = lcg() % (i + 1);
+      [batches[i], batches[j]] = [batches[j], batches[i]];
+    }
+
     for (const batch of batches) {
       const cost = optimizer.minimize(
         () =>
@@ -510,11 +530,7 @@ function trainMF(train, val, opts) {
             const i = tf.gather(model.itemFactors, batch.itemIdx);
             const pred = tf.sum(u.mul(i), 1).add(model.globalMean);
             const mse = tf.losses.meanSquaredError(batch.targets, pred);
-            const l2 = model.userFactors
-              .square()
-              .sum()
-              .add(model.itemFactors.square().sum())
-              .mul(reg);
+            const l2 = u.square().sum().add(i.square().sum()).div(batch.userIdx.shape[0]).mul(reg);
             return mse.add(l2);
           }),
         true,
@@ -523,11 +539,25 @@ function trainMF(train, val, opts) {
       cost.dispose();
     }
 
-    trainingHistory.push({
-      epoch,
-      trainRMSE: computeRMSEFor(train),
-      valRMSE: computeRMSEFor(val),
-    });
+    const trainRMSE = computeRMSEFor(train);
+    const valRMSE = computeRMSEFor(val);
+
+    trainingHistory.push({ epoch, trainRMSE, valRMSE });
+
+    if (valRMSE < bestValRMSE) {
+      bestValRMSE = valRMSE;
+      if (bestUserFactors) bestUserFactors.dispose();
+      if (bestItemFactors) bestItemFactors.dispose();
+      bestUserFactors = model.userFactors.clone();
+      bestItemFactors = model.itemFactors.clone();
+    }
+  }
+
+  if (bestUserFactors && bestItemFactors) {
+    model.userFactors.assign(bestUserFactors);
+    model.itemFactors.assign(bestItemFactors);
+    bestUserFactors.dispose();
+    bestItemFactors.dispose();
   }
 
   for (const batch of batches) {
