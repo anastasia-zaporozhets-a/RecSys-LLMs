@@ -752,6 +752,116 @@ function recallAtK(K = 10) {
 }
 
 /**
+ * Popularity baseline for Recall@K.
+ * Ranks training-pool movies by number of training ratings (desc, ties by movieId asc),
+ * applies the same exclusions as recommendTopK (user's train+val items, duplicate-title
+ * twins, movie 267), uses the same relevance set (test rating >= 4, movie in train pool),
+ * and the same evaluable users. No trained model needed.
+ *
+ * @param {number} [K=10]
+ * @returns {{overallRecall: number, perUser: Array<{userId: number, relevant: number, hit: number}>, excluded: {unseenIds: number[], usersWithoutRelevant: number[]}, stats: {usersWithHits: number, distinctMoviesInTopK: number}}}
+ */
+function recallAtKPopularity(K = 10) {
+  const trainCandidates = new Set(trainSet.map((r) => r.movieId));
+  const testUsers = new Set();
+  const relevantByUser = new Map();
+  const unseenIds = new Set();
+
+  for (const r of testSet) {
+    testUsers.add(r.userId);
+    if (r.rating >= 4.0) {
+      if (!relevantByUser.has(r.userId)) relevantByUser.set(r.userId, new Set());
+      relevantByUser.get(r.userId).add(r.movieId);
+      if (!trainCandidates.has(r.movieId)) unseenIds.add(r.movieId);
+    }
+  }
+
+  // Build popularity ranking: movieId -> count in trainSet
+  const popCounts = new Map();
+  for (const r of trainSet) {
+    popCounts.set(r.movieId, (popCounts.get(r.movieId) || 0) + 1);
+  }
+  // Sort candidates by popularity desc, then movieId asc
+  const sortedCandidates = [...trainCandidates].sort((a, b) => {
+    const ca = popCounts.get(a) || 0;
+    const cb = popCounts.get(b) || 0;
+    return ca !== cb ? cb - ca : a - b;
+  });
+
+  // Build title->ids map for duplicate-title exclusion
+  const titleToIds = new Map();
+  for (const m of movies) {
+    if (!titleToIds.has(m.title)) titleToIds.set(m.title, []);
+    titleToIds.get(m.title).push(m.id);
+  }
+
+  const perUser = [];
+  const usersWithoutRelevant = [];
+  let usersWithHits = 0;
+  const allRecommendedMovieIds = new Set();
+
+  for (const userId of testUsers) {
+    const relevant = [...(relevantByUser.get(userId) || [])].filter((id) =>
+      trainCandidates.has(id),
+    );
+    if (relevant.length === 0) {
+      usersWithoutRelevant.push(userId);
+      continue;
+    }
+
+    const rated = new Set();
+    for (const r of trainSet) if (r.userId === userId) rated.add(r.movieId);
+    for (const r of valSet) if (r.userId === userId) rated.add(r.movieId);
+
+    const ratedTitles = new Set();
+    for (const r of trainSet) if (r.userId === userId) {
+      const movie = movies.find((m) => m.id === r.movieId);
+      if (movie) ratedTitles.add(movie.title);
+    }
+    for (const r of valSet) if (r.userId === userId) {
+      const movie = movies.find((m) => m.id === r.movieId);
+      if (movie) ratedTitles.add(movie.title);
+    }
+
+    // Build top-K from popularity ranking with same exclusions
+    const recs = [];
+    for (const mid of sortedCandidates) {
+      if (recs.length >= K) break;
+      if (rated.has(mid)) continue;
+      if (mid === 267) continue; // "unknown"
+      const movie = movies.find((m) => m.id === mid);
+      if (!movie) continue;
+      if (ratedTitles.has(movie.title)) continue; // duplicate-title twin
+      recs.push(mid);
+    }
+
+    const recIds = new Set(recs);
+    let hit = 0;
+    for (const id of relevant) if (recIds.has(id)) hit++;
+    if (hit > 0) usersWithHits++;
+    for (const mid of recs) allRecommendedMovieIds.add(mid);
+    perUser.push({ userId, relevant: relevant.length, hit });
+  }
+
+  const overallRecall = perUser.length
+    ? perUser.reduce((acc, u) => acc + u.hit / u.relevant, 0) / perUser.length
+    : 0;
+
+  return {
+    overallRecall,
+    perUser,
+    excluded: {
+      unseenIds: [...unseenIds].sort((a, b) => a - b),
+      usersWithoutRelevant,
+    },
+    stats: {
+      usersWithHits,
+      distinctMoviesInTopK: allRecommendedMovieIds.size,
+    },
+  };
+}
+
+/**
  * Node-only: Recall@K with ranking restricted to training-set movies only.
  * This is for comparison with the contract version which scores all movies.
  * Not exposed in the UI.
@@ -967,8 +1077,9 @@ function renderTopK(userId, container) {
     target.innerHTML = '<p class="empty-state">Train the model before requesting recommendations.</p>';
     return;
   }
+  userId = Number(userId);
   try {
-    const recs = recommendTopK(Number(userId), 10);
+    const recs = recommendTopK(userId, 10);
     if (!recs || recs.length === 0) {
       target.innerHTML = '<p class="empty-state">No eligible recommendations for this user.</p>';
       return;
@@ -1041,6 +1152,7 @@ function renderRecall(K = 10, container) {
   if (!target) return;
   try {
     const result = recallAtK(K);
+    const popResult = recallAtKPopularity(K);
     const rows = result.perUser
       .map(
         (u) => `
@@ -1053,12 +1165,13 @@ function renderRecall(K = 10, container) {
       )
       .join("");
     target.innerHTML = `
-      <p><strong>Recall@${K}:</strong> <span class="num">${fmt(result.overallRecall)}</span> (evaluable users: ${result.perUser.length})</p>
+      <p><strong>Recall@${K} (MF):</strong> <span class="num">${fmt(result.overallRecall)}</span> (evaluable users: ${result.perUser.length})</p>
+      <p><strong>Recall@${K} (Popularity):</strong> <span class="num">${fmt(popResult.overallRecall)}</span> (evaluable users: ${popResult.perUser.length}, users with hits: ${popResult.stats.usersWithHits}, distinct movies in top-${K}: ${popResult.stats.distinctMoviesInTopK})</p>
+      <p class="hint">Excluded: ${result.excluded.unseenIds.length} unseen relevant test item(s); ${result.excluded.usersWithoutRelevant.length} user(s) without a relevant candidate.</p>
       <table class="data-table">
         <thead><tr><th scope="col">User</th><th scope="col">Relevant</th><th scope="col">Hits</th><th scope="col">Recall</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="4">No evaluable users.</td></tr>'}</tbody>
-      </table>
-      <p class="hint">Excluded: ${result.excluded.unseenIds.length} unseen relevant test item(s); ${result.excluded.usersWithoutRelevant.length} user(s) without a relevant candidate.</p>`;
+      </table>`;
   } catch (error) {
     target.innerHTML = `<p class="empty-state">Recall unavailable — implement the <code>TODO(hw5)</code> functions. <code>${escapeHtml(error.message)}</code></p>`;
   }
