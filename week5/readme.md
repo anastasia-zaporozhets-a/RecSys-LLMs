@@ -313,3 +313,58 @@ section rather than claiming verification you did not perform.
 ---
 
 *Generated 2026-10-06 from HW5 work order.*
+
+---
+
+## 10. Corrected prompt (A05)
+
+This section documents the fixes applied to the original assignment prompt to resolve the defects identified in the audit.
+
+### 10.1 Per-batch L2 regularization on gathered rows only
+The original suggested `trainMF` loss applied L2 over the **full** user and item factor matrices (`model.userFactors.square().sum() + model.itemFactors.square().sum()`) once per mini-batch. This caused the regularization to dominate the loss (≈3.6× batch MSE at initialization) and drove all factors to zero within the first fraction of an epoch, making the model collapse to the global-mean predictor.
+
+**Fix**: L2 is now computed **only on the factor rows gathered for the current batch** and averaged over the batch size:
+```js
+const l2 = u.square().sum().add(i.square().sum()).div(batch.userIdx.shape[0]).mul(reg);
+```
+where `u = tf.gather(model.userFactors, batch.userIdx)` and `i = tf.gather(model.itemFactors, batch.itemIdx)`. This matches the intended semantics of per-sample regularization and prevents the collapse.
+
+### 10.2 Best-checkpoint restore and test RMSE of the restored model
+The original `runPipeline` selected the best epoch by validation RMSE but never restored those weights — the model held after training was the last epoch's weights. The status line only showed the best validation RMSE, not the test RMSE of the checkpoint actually used.
+
+**Fix**: During training, when a new best validation RMSE is observed, clones of `userFactors` and `itemFactors` are saved. After the last epoch, the best clones are assigned back into the model variables with `assign()`, so the model held after `runPipeline` is exactly the selected checkpoint. The status line now reports:
+- Backend used (WebGL/CPU)
+- Restored epoch number and its validation RMSE
+- **Test RMSE of the restored model** (via `computeRMSEFor(testSet)`)
+- Baseline validation and test RMSE for comparison
+
+### 10.3 Sparsity over real IDs (943 × 1682)
+The original readme stated the dense matrix as `(943 + 1) × (1682 + 1)` = 944 × 1683, including the unused row/column 0. Sparsity computed over this padded matrix is 93.71%.
+
+**Correction**: The real ID space is 943 users × 1682 movies = 1,586,126 cells. With 100,000 observed ratings:
+- Density = 6.3047%
+- Sparsity = 93.6953%
+
+### 10.4 Candidate-pool conflict with checks 9/10 and its resolution
+The readme §5.1/§6 requires `recommendTopK` to use **training-set movies as candidates** (Recall@10 candidate pool). However, self-checks 9 and 10 use fixtures where the test-rated movie (id 3 in check 9, id 2 in check 10) is **not in the training set**, and non-training movies (ids 4–12 in check 10) must be scored to fill the Top-K and push the relevant item out at rank 11. A strict training-pool-only implementation would fail both checks.
+
+**Resolution**: The implementation follows the self-checks (which are the executable contract) and scores **all movies present in `movies[]`**, excluding only (a) the user's train/val items, (b) duplicate-title copies of movies the user already rated, and (c) movie 267 `"unknown"`. A node-only function `recallAtKTrainOnly` is provided for comparison, which restricts ranking to the training-set pool as the readme originally specified.
+
+### 10.5 ISO-8859-1 titles (Latin-1)
+The `u.item` file is encoded in ISO-8859-1 (Latin-1). The original `data.js` used `fetch().text()` which decodes as UTF-8, corrupting 9 titles containing accented characters (e.g., `Mis�rables` instead of `Misérables`).
+
+**Fix**: After `loadData()` completes, the page re-fetches `u.item` as an `ArrayBuffer`, decodes it with `new TextDecoder('iso-8859-1')`, and overwrites `movies[].title` by id. This restores all accented titles correctly.
+
+### 10.6 Duplicate-title and "unknown" exclusion in recommendations
+The dataset contains **18 duplicate-title pairs** (e.g., "Chasing Amy (1997)" at ids 246 and 268) and one movie (id 267) titled literally `"unknown"`. The original `recommendTopK` only excluded by `movieId`, so a user who rated one duplicate could be recommended the other copy of the same film, and `"unknown"` could appear in recommendations.
+
+**Fix**: `recommendTopK` now additionally excludes:
+- (a) Any movie whose **title matches** the title of a movie the user rated in train or val (same-title duplicate protection).
+- (b) Movie 267 with title `"unknown"`.
+
+This ensures recommendations do not repeat the same film under a different id and do not surface the placeholder title.
+
+### 10.7 u.item has 19 genre flags (not 18)
+The original readme §3 stated `u.item` has "18 genre flags". The file actually has **24 pipe-separated fields**: indices 0–4 are id/title/release/video/url, index 5 is the legacy **"unknown" genre flag**, and indices 6–23 are the **18 real genre flags** (Action, Adventure, …, Western). Total genre columns = **19**.
+
+**Correction**: The readme now states the format as `id | title | release | video | url | unknown | 18 genre flags` (24 fields total), matching the actual file and `data.js` parsing logic (which correctly uses `fields.slice(6, 24)` for the 18 real genres).

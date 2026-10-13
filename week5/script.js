@@ -634,6 +634,17 @@ function recommendTopK(userId, K = 10) {
   for (const r of trainSet) if (r.userId === userId) rated.add(r.movieId);
   for (const r of valSet) if (r.userId === userId) rated.add(r.movieId);
 
+  // Additional exclusions: same-title duplicates and movie 267 "unknown"
+  const ratedTitles = new Set();
+  for (const r of trainSet) if (r.userId === userId) {
+    const movie = movies.find((m) => m.id === r.movieId);
+    if (movie) ratedTitles.add(movie.title);
+  }
+  for (const r of valSet) if (r.userId === userId) {
+    const movie = movies.find((m) => m.id === r.movieId);
+    if (movie) ratedTitles.add(movie.title);
+  }
+
   return tf.tidy(() => {
     const rows = model.itemFactors.shape[0];
     const userRow = model.userFactors.slice([userId, 0], [1, f]); // [1, F]
@@ -644,7 +655,10 @@ function recommendTopK(userId, K = 10) {
 
     const maskData = new Float32Array(rows);
     for (let id = 0; id < rows; id++) {
-      maskData[id] = validIds.has(id) && !rated.has(id) ? 1 : 0;
+      const movie = movies.find((m) => m.id === id);
+      const titleOk = movie && !ratedTitles.has(movie.title);
+      const notUnknown = !(movie && movie.title === 'unknown');
+      maskData[id] = validIds.has(id) && !rated.has(id) && titleOk && notUnknown ? 1 : 0;
     }
     const mask = tf.tensor1d(maskData, "float32");
     const masked = scores.mul(mask).add(mask.mul(-1).add(1).mul(-1e9));
@@ -735,6 +749,126 @@ function recallAtK(K = 10) {
       usersWithoutRelevant,
     },
   };
+}
+
+/**
+ * Node-only: Recall@K with ranking restricted to training-set movies only.
+ * This is for comparison with the contract version which scores all movies.
+ * Not exposed in the UI.
+ *
+ * @param {number} [K=10]
+ * @returns {Promise<{overallRecall: number, perUser: Array<{userId: number, relevant: number, hit: number}>, excluded: {unseenIds: number[], usersWithoutRelevant: number[]}}>}
+ */
+async function recallAtKTrainOnly(K = 10) {
+  const trainCandidates = new Set(trainSet.map((r) => r.movieId));
+  const testUsers = new Set();
+  const relevantByUser = new Map();
+  const unseenIds = new Set();
+
+  for (const r of testSet) {
+    testUsers.add(r.userId);
+    if (r.rating >= 4.0) {
+      if (!relevantByUser.has(r.userId)) relevantByUser.set(r.userId, new Set());
+      relevantByUser.get(r.userId).add(r.movieId);
+      if (!trainCandidates.has(r.movieId)) unseenIds.add(r.movieId);
+    }
+  }
+
+  const perUser = [];
+  const usersWithoutRelevant = [];
+
+  for (const userId of testUsers) {
+    const relevant = [...(relevantByUser.get(userId) || [])].filter((id) =>
+      trainCandidates.has(id),
+    );
+    if (relevant.length === 0) {
+      usersWithoutRelevant.push(userId);
+      continue;
+    }
+    // Only consider training-set movies as candidates for ranking
+    const recs = recommendTopKTrainOnly(userId, K);
+    const recIds = new Set(recs.map((r) => r.movieId));
+    let hit = 0;
+    for (const id of relevant) if (recIds.has(id)) hit++;
+    perUser.push({ userId, relevant: relevant.length, hit });
+  }
+
+  const overallRecall = perUser.length
+    ? perUser.reduce((acc, u) => acc + u.hit / u.relevant, 0) / perUser.length
+    : 0;
+
+  return {
+    overallRecall,
+    perUser,
+    excluded: {
+      unseenIds: [...unseenIds].sort((a, b) => a - b),
+      usersWithoutRelevant,
+    },
+  };
+}
+
+/**
+ * Node-only: recommendTopK restricted to training-set movie candidates.
+ * Used by recallAtKTrainOnly.
+ *
+ * @param {number} userId
+ * @param {number} [K=10]
+ * @returns {Array<{movieId: number, title: string, score: number}>}
+ */
+function recommendTopKTrainOnly(userId, K = 10) {
+  if (!model || K <= 0) return [];
+  const f = model.userFactors.shape[1];
+  const uRows = model.userFactors.shape[0];
+  if (userId < 0 || userId >= uRows) return [];
+
+  const trainCandidates = new Set(trainSet.map((r) => r.movieId));
+  const rated = new Set();
+  for (const r of trainSet) if (r.userId === userId) rated.add(r.movieId);
+  for (const r of valSet) if (r.userId === userId) rated.add(r.movieId);
+
+  // Additional exclusions: same-title duplicates and movie 267 "unknown"
+  const ratedTitles = new Set();
+  for (const r of trainSet) if (r.userId === userId) {
+    const movie = movies.find((m) => m.id === r.movieId);
+    if (movie) ratedTitles.add(movie.title);
+  }
+  for (const r of valSet) if (r.userId === userId) {
+    const movie = movies.find((m) => m.id === r.movieId);
+    if (movie) ratedTitles.add(movie.title);
+  }
+
+  return tf.tidy(() => {
+    const rows = model.itemFactors.shape[0];
+    const userRow = model.userFactors.slice([userId, 0], [1, f]); // [1, F]
+    const scores = model.itemFactors
+      .matMul(userRow, false, true)   // [rows, 1]
+      .squeeze()                      // [rows]
+      .add(model.globalMean);
+
+    const maskData = new Float32Array(rows);
+    for (let id = 0; id < rows; id++) {
+      const movie = movies.find((m) => m.id === id);
+      const inTrainPool = trainCandidates.has(id);
+      const titleOk = movie && !ratedTitles.has(movie.title);
+      const notUnknown = !(movie && movie.title === 'unknown');
+      maskData[id] = inTrainPool && !rated.has(id) && titleOk && notUnknown ? 1 : 0;
+    }
+    const mask = tf.tensor1d(maskData, "float32");
+    const masked = scores.mul(mask).add(mask.mul(-1).add(1).mul(-1e9));
+
+    const k = Math.min(K, rows);
+    const { values, indices } = tf.topk(masked, k);
+    const valArr = values.dataSync();
+    const idxArr = indices.dataSync();
+
+    const out = [];
+    for (let j = 0; j < idxArr.length && out.length < K; j++) {
+      const id = idxArr[j];
+      if (!maskData[id]) continue;
+      out.push({ movieId: id, title: movieTitle(id), score: valArr[j] });
+    }
+    return out;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -839,15 +973,57 @@ function renderTopK(userId, container) {
       target.innerHTML = '<p class="empty-state">No eligible recommendations for this user.</p>';
       return;
     }
+
+    // Training rating counts per movie
+    const trainCounts = new Map();
+    for (const r of trainSet) {
+      trainCounts.set(r.movieId, (trainCounts.get(r.movieId) || 0) + 1);
+    }
+
+    // Build user history
+    const userTrainVal = [...trainSet, ...valSet].filter((r) => r.userId === userId);
+    const genreCounts = new Map();
+    for (const r of userTrainVal) {
+      const movie = movies.find((m) => m.id === r.movieId);
+      if (movie) {
+        for (const g of movie.genres) {
+          genreCounts.set(g, (genreCounts.get(g) || 0) + 1);
+        }
+      }
+    }
+    const topGenres = [...genreCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([g, c]) => `${g} (${c})`)
+      .join(', ') || '—';
+
+    const topRated = userTrainVal
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 10)
+      .map((r) => {
+        const movie = movies.find((m) => m.id === r.movieId);
+        const genres = movie ? movie.genres.join(', ') : '—';
+        return `${escapeHtml(movie ? movie.title : `Movie #${r.movieId}`)} (${r.rating}) [${genres}]`;
+      })
+      .join('<br>') || '—';
+
     target.innerHTML =
       '<ol class="recommendation-list">' +
       recs
-        .map(
-          (r) =>
-            `<li><span class="rec-title">${escapeHtml(r.title)}</span> <span class="rec-score">${fmt(r.score)}</span></li>`,
-        )
+        .map((r) => {
+          const movie = movies.find((m) => m.id === r.movieId);
+          const genres = movie ? movie.genres.join(', ') : '—';
+          const trainCount = trainCounts.get(r.movieId) || 0;
+          return `<li><span class="rec-title">${escapeHtml(r.title)}</span> <span class="rec-score">${fmt(r.score)}</span> <span class="rec-meta">[${genres}] train: ${trainCount}</span></li>`;
+        })
         .join("") +
-      "</ol>";
+      "</ol>" +
+      `<div class="user-history">
+        <h4>User ${userId} history</h4>
+        <p><strong>Train+Val ratings:</strong> ${userTrainVal.length}</p>
+        <p><strong>Top genres:</strong> ${topGenres}</p>
+        <p><strong>Top-10 rated:</strong><br>${topRated}</p>
+      </div>`;
   } catch (error) {
     target.innerHTML = `<p class="empty-state">Recommendations unavailable — implement the <code>TODO(hw5)</code> functions. <code>${escapeHtml(error.message)}</code></p>`;
   }
@@ -877,7 +1053,7 @@ function renderRecall(K = 10, container) {
       )
       .join("");
     target.innerHTML = `
-      <p><strong>Recall@${K}:</strong> <span class="num">${fmt(result.overallRecall)}</span></p>
+      <p><strong>Recall@${K}:</strong> <span class="num">${fmt(result.overallRecall)}</span> (evaluable users: ${result.perUser.length})</p>
       <table class="data-table">
         <thead><tr><th scope="col">User</th><th scope="col">Relevant</th><th scope="col">Hits</th><th scope="col">Recall</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="4">No evaluable users.</td></tr>'}</tbody>
@@ -942,10 +1118,13 @@ function runPipeline() {
     trainingHistory = trainMF(trainSet, valSet, opts);
     bestCheckpoint = selectBestCheckpoint(trainingHistory);
     renderTrainingCurve();
-    if (status) {
-      status.textContent = bestCheckpoint
-        ? `Trained ${opts.epochs} epoch(s) on ${tfBackend || "tf"} — best val RMSE ${fmt(bestCheckpoint.valRMSE)} at epoch ${bestCheckpoint.epoch}.`
-        : `Trained ${opts.epochs} epoch(s) — no history recorded.`;
+    if (status && bestCheckpoint) {
+      const testRMSE = computeRMSEFor(testSet);
+      const baselineVal = computeBaselineRMSE(valSet);
+      const baselineTest = computeBaselineRMSE(testSet);
+      status.textContent = `Trained ${opts.epochs} epoch(s) on ${tfBackend || "tf"} — restored epoch ${bestCheckpoint.epoch} (val RMSE ${fmt(bestCheckpoint.valRMSE)}), held-model test RMSE ${fmt(testRMSE)}; baseline val ${fmt(baselineVal)} / test ${fmt(baselineTest)}.`;
+    } else if (status) {
+      status.textContent = `Trained ${opts.epochs} epoch(s) — no history recorded.`;
     }
   } catch (error) {
     const message = String(error && error.message ? error.message : error);
@@ -1127,6 +1306,10 @@ function withFixture(fixture, fn) {
     trainingHistory = fixture.history || [];
     return fn();
   } finally {
+    // Dispose fixture model to avoid leaking GPU memory (audit row 14)
+    if (fixture.model && isTfModel(fixture.model)) {
+      tf.dispose([fixture.model.userFactors, fixture.model.itemFactors]);
+    }
     movies = saved.movies;
     trainSet = saved.trainSet;
     valSet = saved.valSet;
@@ -1394,6 +1577,22 @@ window.onload = async function () {
   try {
     if (status) status.textContent = "Loading data\u2026";
     await loadData();
+
+    // Fix titles: re-fetch u.item as ArrayBuffer and decode as ISO-8859-1
+    const itemResponse = await fetch('u.item');
+    const itemArrayBuffer = await itemResponse.arrayBuffer();
+    const itemText = new TextDecoder('iso-8859-1').decode(itemArrayBuffer);
+    const lines = itemText.split('\n');
+    for (const line of lines) {
+      if (line.trim() === '') continue;
+      const fields = line.split('|');
+      if (fields.length < 24) continue;
+      const id = parseInt(fields[0]);
+      const title = fields[1];
+      const movie = movies.find((m) => m.id === id);
+      if (movie) movie.title = title;
+    }
+
     const split = splitByTimestamp();
     trainSet = split.train;
     valSet = split.val;
