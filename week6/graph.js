@@ -356,7 +356,77 @@ function getGraph() {
 function buildGraph(train) {
   // TODO(hw6): collect observed ids, map them to contiguous indices, fill R and
   // degree, then return the object described in the typedef and readme 3.1.
-  throw new Error("TODO(hw6): buildGraph is not implemented yet.");
+  const rows = Array.isArray(train) ? train : [];
+  const userSet = new Set();
+  const movieSet = new Set();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const userId = Number(row.userId);
+    const movieId = Number(row.movieId);
+    if (!Number.isFinite(userId) || !Number.isFinite(movieId)) continue;
+    userSet.add(userId);
+    movieSet.add(movieId);
+  }
+
+  const userIds = Array.from(userSet).sort(function (a, b) { return a - b; });
+  const movieIds = Array.from(movieSet).sort(function (a, b) { return a - b; });
+  const nUsers = userIds.length;
+  const nMovies = movieIds.length;
+
+  const userIndexOf = new Map();
+  userIds.forEach(function (id, index) { userIndexOf.set(id, index); });
+  const movieIndexOf = new Map();
+  movieIds.forEach(function (id, index) { movieIndexOf.set(id, index); });
+
+  // R[u][i] = 1 iff user u rated movie i with rating >= 4.0 in TRAINING.
+  const R = [];
+  for (let u = 0; u < nUsers; u++) R.push(new Array(nMovies).fill(0));
+
+  const degree = new Float64Array(nUsers + nMovies);
+  let positiveEdges = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const u = userIndexOf.get(Number(row.userId));
+    const m = movieIndexOf.get(Number(row.movieId));
+    if (u === undefined || m === undefined) continue;
+    if (!(Number(row.rating) >= 4.0)) continue;
+    if (R[u][m]) continue;
+    R[u][m] = 1;
+    degree[u] += 1;
+    degree[nUsers + m] += 1;
+    positiveEdges += 1;
+  }
+
+  const zeroDegreeUsers = [];
+  for (let u = 0; u < nUsers; u++) if (degree[u] === 0) zeroDegreeUsers.push(userIds[u]);
+  const zeroDegreeMovies = [];
+  for (let m = 0; m < nMovies; m++) if (degree[nUsers + m] === 0) zeroDegreeMovies.push(movieIds[m]);
+
+  return {
+    nUsers: nUsers,
+    nMovies: nMovies,
+    userIds: userIds,
+    movieIds: movieIds,
+    userIndexOf: userIndexOf,
+    movieIndexOf: movieIndexOf,
+    nodeCount: nUsers + nMovies,
+    nodeOfUser: function (userId) {
+      const local = userIndexOf.get(Number(userId));
+      return local === undefined ? -1 : local;
+    },
+    movieOfNode: function (node) {
+      const local = Number(node) - nUsers;
+      return local >= 0 && local < nMovies ? movieIds[local] : -1;
+    },
+    isUserNode: function (node) { return Number(node) < nUsers; },
+    degree: degree,
+    zeroDegreeUsers: zeroDegreeUsers,
+    zeroDegreeMovies: zeroDegreeMovies,
+    positiveEdges: positiveEdges,
+    R: R,
+  };
 }
 
 /**
@@ -389,7 +459,36 @@ function buildGraph(train) {
  */
 function rowNormalize(graph) {
   // TODO(hw6): normalize positive-degree rows and build the dangling mask.
-  throw new Error("TODO(hw6): rowNormalize is not implemented yet.");
+  if (!graph) return { Q: [], danglingMask: [] };
+
+  const nUsers = graph.nUsers;
+  const nMovies = graph.nMovies;
+  const n = nUsers + nMovies;
+  const R = graph.R || [];
+  const degree = graph.degree;
+
+  const Q = [];
+  const danglingMask = [];
+  for (let node = 0; node < n; node++) {
+    const row = new Float64Array(n);
+    const deg = degree ? degree[node] : 0;
+    if (deg > 0) {
+      const inv = 1 / deg;
+      if (node < nUsers) {
+        const userRow = R[node] || [];
+        for (let m = 0; m < nMovies; m++) if (userRow[m]) row[nUsers + m] = inv;
+      } else {
+        const movie = node - nUsers;
+        for (let u = 0; u < nUsers; u++) {
+          const userRow = R[u];
+          if (userRow && userRow[movie]) row[u] = inv;
+        }
+      }
+    }
+    Q.push(row);
+    danglingMask.push(!(deg > 0));
+  }
+  return { Q: Q, danglingMask: danglingMask };
 }
 
 /**
@@ -439,7 +538,33 @@ function rowNormalize(graph) {
  */
 function pageRank(alpha, opts) {
   // TODO(hw6): power iteration with a uniform restart on the tensor path.
-  throw new Error("TODO(hw6): pageRank is not implemented yet.");
+  const options = opts || {};
+  const damping = Number(alpha);
+  if (!Number.isFinite(damping)) throw new Error("pageRank: alpha must be a finite number.");
+  if (damping < 0 || damping > 1) throw new Error("pageRank: alpha " + alpha + " is outside [0, 1].");
+  const tol = hw6PropTolerance(options.tol);
+  const maxIter = hw6PropMaxIterations(options.maxIter);
+
+  let prop = null;
+  let ownsProp = false;
+  if (options.transition) {
+    prop = hw6DensePropagator(options.transition);
+    ownsProp = true;
+  } else {
+    const graph = typeof GRAPH !== "undefined" ? GRAPH : null;
+    if (!graph) throw new Error("pageRank: no transition supplied and no graph has been built.");
+    prop = hw6BlockPropagator(graph);
+  }
+
+  try {
+    const n = prop.n;
+    const v = tf.tidy(function () { return tf.fill([n, 1], 1 / n); });
+    const out = hw6Iterate(prop, damping, v, maxIter, tol);
+    v.dispose();
+    return hw6ResultFromIteration(out, 0);
+  } finally {
+    if (ownsProp) prop.dispose();
+  }
 }
 
 /**
@@ -476,7 +601,453 @@ function pageRank(alpha, opts) {
  */
 function personalizedPageRank(userId, alpha, opts) {
   // TODO(hw6): one-hot restart at the user's node; fail loudly on unknown users.
-  throw new Error("TODO(hw6): personalizedPageRank is not implemented yet.");
+  const options = opts || {};
+  const seed = Number(userId);
+  if (!Number.isFinite(seed)) throw new Error("personalizedPageRank: the restart index must be a finite number.");
+  const damping = Number(alpha);
+  if (!Number.isFinite(damping)) throw new Error("personalizedPageRank: alpha must be a finite number.");
+  if (damping < 0 || damping > 1) throw new Error("personalizedPageRank: alpha " + alpha + " is outside [0, 1].");
+  const tol = hw6PropTolerance(options.tol);
+  const maxIter = hw6PropMaxIterations(options.maxIter);
+
+  if (options.transition) {
+    const prop = hw6DensePropagator(options.transition);
+    try {
+      const n = prop.n;
+      if (!Number.isInteger(seed) || seed < 0 || seed >= n) {
+        throw new Error("personalizedPageRank: restart index " + userId + " is outside [0, " + n + ").");
+      }
+      const v = tf.tensor2d(hw6OneHot(n, seed), [n, 1]);
+      const out = hw6Iterate(prop, damping, v, maxIter, tol);
+      v.dispose();
+      return hw6ResultFromIteration(out, 0);
+    } finally {
+      prop.dispose();
+    }
+  }
+
+  const graph = typeof GRAPH !== "undefined" ? GRAPH : null;
+  if (!graph) throw new Error("personalizedPageRank: no transition supplied and no graph has been built.");
+  const dims = hw6GraphDimensions(graph);
+  if (!Number.isInteger(seed) || seed < 0 || seed >= dims.n) {
+    throw new Error("personalizedPageRank: restart index " + userId + " is outside [0, " + dims.n + ").");
+  }
+
+  if (seed < dims.nUsers) {
+    // User seed: every user seed is propagated at once and cached per (graph, alpha).
+    const batch = hw6BatchedPpr(graph, damping, maxIter, tol);
+    return hw6PprColumn(batch, seed);
+  }
+
+  // Movie seed: single-seed fallback on the same block transition.
+  const prop = hw6BlockPropagator(graph);
+  const v = tf.tensor2d(hw6OneHot(prop.n, seed), [prop.n, 1]);
+  const out = hw6Iterate(prop, damping, v, maxIter, tol);
+  v.dispose();
+  return hw6ResultFromIteration(out, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Propagation internals (private, graph-prefixed to avoid collisions)
+// ---------------------------------------------------------------------------
+
+/**
+ * Convergence tolerance used when the caller does not pass `opts.tol`.
+ */
+const HW6_PROP_TOLERANCE = 1e-6;
+
+/**
+ * Iteration cap used when the caller does not pass `opts.maxIter`.
+ */
+const HW6_PROP_MAX_ITERATIONS = 500;
+
+/**
+ * Cached TensorFlow.js tensors that realize the block transition of one graph:
+ * `At` = (R / userDegree)^T, `Bt` = (R^T / movieDegree)^T and the two dangling
+ * masks. The square adjacency matrix is never materialized. The cache is keyed
+ * by graph identity and disposed as soon as a different graph is used.
+ */
+let HW6_GRAPH_TENSORS = null;
+
+/**
+ * Cached batched personalized PageRank: one restart column per user node, kept
+ * per (graph, alpha). The cached tensors are disposed when either key changes.
+ */
+let HW6_PPR_CACHE = null;
+
+/**
+ * Resolve the convergence tolerance.
+ *
+ * @param {*} value
+ * @returns {number}
+ */
+function hw6PropTolerance(value) {
+  if (value === undefined || value === null) return HW6_PROP_TOLERANCE;
+  const tol = Number(value);
+  if (!Number.isFinite(tol) || tol <= 0) throw new Error("pageRank: tol must be a positive number.");
+  return tol;
+}
+
+/**
+ * Resolve the iteration cap.
+ *
+ * @param {*} value
+ * @returns {number}
+ */
+function hw6PropMaxIterations(value) {
+  if (value === undefined || value === null) return HW6_PROP_MAX_ITERATIONS;
+  const maxIter = Number(value);
+  if (!Number.isInteger(maxIter) || maxIter < 1) throw new Error("pageRank: maxIter must be a positive integer.");
+  return maxIter;
+}
+
+/**
+ * Release the cached block-transition tensors.
+ */
+function hw6DisposeGraphTensors() {
+  if (!HW6_GRAPH_TENSORS) return;
+  const cached = HW6_GRAPH_TENSORS;
+  HW6_GRAPH_TENSORS = null;
+  ["At", "Bt", "maskU", "maskM"].forEach(function (key) {
+    const tensor = cached[key];
+    if (tensor && typeof tensor.dispose === "function") tensor.dispose();
+  });
+}
+
+/**
+ * Release the cached batched personalized PageRank result.
+ */
+function hw6DisposePprCache() {
+  if (!HW6_PPR_CACHE) return;
+  const cached = HW6_PPR_CACHE;
+  HW6_PPR_CACHE = null;
+  if (cached.p && typeof cached.p.dispose === "function") cached.p.dispose();
+}
+
+/**
+ * Node counts of a graph built by `buildGraph`.
+ *
+ * @param {Graph} graph
+ * @returns {{nUsers: number, nMovies: number, n: number}}
+ */
+function hw6GraphDimensions(graph) {
+  const nUsers = Number.isFinite(graph.nUsers)
+    ? graph.nUsers
+    : (Array.isArray(graph.userIds) ? graph.userIds.length : 0);
+  const nMovies = Number.isFinite(graph.nMovies)
+    ? graph.nMovies
+    : (Array.isArray(graph.movieIds) ? graph.movieIds.length : 0);
+  return { nUsers: nUsers, nMovies: nMovies, n: nUsers + nMovies };
+}
+
+/**
+ * Node degrees of a graph; recomputed only when the graph does not carry them.
+ *
+ * @param {Graph} graph
+ * @param {number} nUsers
+ * @param {number} nMovies
+ * @returns {Float64Array}
+ */
+function hw6GraphDegrees(graph, nUsers, nMovies) {
+  const n = nUsers + nMovies;
+  const degree = new Float64Array(n);
+  if (graph.degree && graph.degree.length === n) {
+    for (let i = 0; i < n; i++) degree[i] = graph.degree[i];
+    return degree;
+  }
+  const R = graph.R || [];
+  for (let u = 0; u < nUsers; u++) {
+    const row = R[u] || [];
+    for (let m = 0; m < nMovies; m++) {
+      if (!row[m]) continue;
+      degree[u] += 1;
+      degree[nUsers + m] += 1;
+    }
+  }
+  return degree;
+}
+
+/**
+ * Block propagator for the MovieLens graph: the square adjacency matrix is never
+ * materialized, only the two off-diagonal blocks and their transposes.
+ *
+ * Node order is users `[0, nUsers)` then movies `[nUsers, nUsers + nMovies)`.
+ *
+ * @param {Graph} graph
+ * @returns {object} propagator
+ */
+function hw6BlockPropagator(graph) {
+  if (HW6_GRAPH_TENSORS && HW6_GRAPH_TENSORS.graph === graph) return HW6_GRAPH_TENSORS;
+  hw6DisposeGraphTensors();
+  hw6DisposePprCache();
+  if (typeof tf === "undefined") throw new Error("pageRank: TensorFlow.js is not available.");
+
+  const dims = hw6GraphDimensions(graph);
+  const nUsers = dims.nUsers;
+  const nMovies = dims.nMovies;
+  const R = graph.R || [];
+  const degree = hw6GraphDegrees(graph, nUsers, nMovies);
+
+  // A = R / userDegree (nUsers x nMovies), B = R^T / movieDegree (nMovies x nUsers).
+  const aData = new Float32Array(nUsers * nMovies);
+  const bData = new Float32Array(nMovies * nUsers);
+  const zeroUser = new Float32Array(nUsers);
+  const zeroMovie = new Float32Array(nMovies);
+
+  for (let u = 0; u < nUsers; u++) {
+    if (!(degree[u] > 0)) { zeroUser[u] = 1; continue; }
+    const inv = 1 / degree[u];
+    const row = R[u] || [];
+    for (let m = 0; m < nMovies; m++) {
+      if (!row[m]) continue;
+      aData[u * nMovies + m] = inv;
+      bData[m * nUsers + u] = 1 / degree[nUsers + m];
+    }
+  }
+  for (let m = 0; m < nMovies; m++) if (!(degree[nUsers + m] > 0)) zeroMovie[m] = 1;
+
+  const A = tf.tensor2d(aData, [nUsers, nMovies]);
+  const B = tf.tensor2d(bData, [nMovies, nUsers]);
+  const At = tf.transpose(A);
+  A.dispose();
+  const Bt = tf.transpose(B);
+  B.dispose();
+
+  HW6_GRAPH_TENSORS = {
+    graph: graph,
+    kind: "block",
+    n: nUsers + nMovies,
+    nUsers: nUsers,
+    nMovies: nMovies,
+    At: At,
+    Bt: Bt,
+    maskU: tf.tensor2d(zeroUser, [nUsers, 1]),
+    maskM: tf.tensor2d(zeroMovie, [nMovies, 1]),
+    step: function (p) {
+      const pUser = tf.slice(p, [0, 0], [nUsers, -1]);
+      const pMovie = tf.slice(p, [nUsers, 0], [nMovies, -1]);
+      const fromMovies = tf.matMul(this.Bt, pMovie);
+      const fromUsers = tf.matMul(this.At, pUser);
+      return tf.concat([fromMovies, fromUsers], 0);
+    },
+    dangling: function (p) {
+      const pUser = tf.slice(p, [0, 0], [nUsers, -1]);
+      const pMovie = tf.slice(p, [nUsers, 0], [nMovies, -1]);
+      const userMass = tf.sum(tf.mul(pUser, this.maskU), 0);
+      const movieMass = tf.sum(tf.mul(pMovie, this.maskM), 0);
+      return tf.add(userMass, movieMass);
+    },
+    dispose: function () { hw6DisposeGraphTensors(); },
+  };
+  return HW6_GRAPH_TENSORS;
+}
+
+/**
+ * Dense propagator for an explicitly supplied {@link TransitionSpec}.
+ *
+ * @param {TransitionSpec} transition
+ * @returns {object} propagator
+ */
+function hw6DensePropagator(transition) {
+  if (typeof tf === "undefined") throw new Error("pageRank: TensorFlow.js is not available.");
+  const Q = transition.Q || [];
+  const n = Q.length;
+  const QTensor = tf.tensor2d(Q, [n, n]);
+  const QT = tf.transpose(QTensor);
+  QTensor.dispose();
+  const maskData = new Float32Array(n);
+  const mask = transition.danglingMask || [];
+  for (let i = 0; i < n; i++) maskData[i] = mask[i] ? 1 : 0;
+
+  return {
+    graph: null,
+    kind: "dense",
+    n: n,
+    nUsers: null,
+    nMovies: null,
+    QT: QT,
+    mask: tf.tensor2d(maskData, [n, 1]),
+    step: function (p) { return tf.matMul(this.QT, p); },
+    dangling: function (p) { return tf.sum(tf.mul(p, this.mask), 0); },
+    dispose: function () {
+      if (this.QT && typeof this.QT.dispose === "function") this.QT.dispose();
+      if (this.mask && typeof this.mask.dispose === "function") this.mask.dispose();
+    },
+  };
+}
+
+/**
+ * One-hot column vector.
+ *
+ * @param {number} n
+ * @param {number} index
+ * @returns {Float32Array}
+ */
+function hw6OneHot(n, index) {
+  const data = new Float32Array(n);
+  data[index] = 1;
+  return data;
+}
+
+/**
+ * Power iteration shared by the global and the personalized propagation.
+ *
+ *   p_0 = v ;  p_next = alpha * (Q^T * p + d * v) + (1 - alpha) * v
+ *
+ * `v` holds one restart column per propagation column. The iteration stops when
+ * the L1 difference of every column drops below `tol` or when `maxIter` updates
+ * have been performed.
+ *
+ * @param {object} prop propagator returned by `hw6BlockPropagator` / `hw6DensePropagator`
+ * @param {number} alpha
+ * @param {tf.Tensor} v restart matrix `[n, nCols]`
+ * @param {number} maxIter
+ * @param {number} tol
+ * @returns {object} iteration bookkeeping
+ */
+function hw6Iterate(prop, alpha, v, maxIter, tol) {
+  const nCols = v.shape[1];
+  let p = v.clone();
+  const convIter = new Int32Array(nCols);
+  const convRes = new Float64Array(nCols);
+  const lastRes = new Float64Array(nCols);
+  let iterations = 0;
+  let converged = false;
+
+  for (let iter = 1; iter <= maxIter; iter++) {
+    const next = tf.tidy(function () {
+      const part = prop.step(p);
+      const d = prop.dangling(p);
+      const base = tf.add(tf.scalar(1 - alpha), tf.mul(alpha, d));
+      return tf.add(tf.mul(alpha, part), tf.mul(tf.reshape(base, [1, nCols]), v));
+    });
+    const resTensor = tf.tidy(function () {
+      return tf.sum(tf.abs(tf.sub(next, p)), 0);
+    });
+    const res = resTensor.dataSync();
+    resTensor.dispose();
+
+    let allBelow = true;
+    for (let c = 0; c < nCols; c++) {
+      lastRes[c] = res[c];
+      if (convIter[c] === 0 && res[c] < tol) {
+        convIter[c] = iter;
+        convRes[c] = res[c];
+      }
+      if (!(res[c] < tol)) allBelow = false;
+    }
+
+    const previous = p;
+    p = next;
+    previous.dispose();
+    iterations = iter;
+
+    if (allBelow) {
+      converged = true;
+      break;
+    }
+  }
+
+  return {
+    p: p,
+    convIter: convIter,
+    convRes: convRes,
+    lastRes: lastRes,
+    iterations: iterations,
+    converged: converged,
+  };
+}
+
+/**
+ * Build the public result object from a finished iteration.
+ *
+ * @param {object} out
+ * @param {number} column
+ * @returns {PageRankResult}
+ */
+function hw6ResultFromIteration(out, column) {
+  const values = out.p.dataSync();
+  const p = new Float64Array(values.length);
+  for (let i = 0; i < values.length; i++) p[i] = values[i];
+  // The iteration tensor is not part of the public result; the batched path
+  // keeps its own copy, so releasing it here keeps repeated runs leak-free.
+  if (out.p && typeof out.p.dispose === "function") out.p.dispose();
+  return hw6ResultFromColumn(out, column, p);
+}
+
+/**
+ * Build the public result object for one column of a (possibly batched) run.
+ *
+ * @param {object} out
+ * @param {number} column
+ * @param {Float64Array} p
+ * @returns {PageRankResult}
+ */
+function hw6ResultFromColumn(out, column, p) {
+  const converged = out.convIter[column] > 0;
+  return {
+    p: p,
+    iterations: converged ? out.convIter[column] : out.iterations,
+    residual: converged ? out.convRes[column] : out.lastRes[column],
+    converged: converged,
+  };
+}
+
+/**
+ * Extract one column of a batched personalized PageRank run.
+ *
+ * @param {object} batch
+ * @param {number} column
+ * @returns {PageRankResult}
+ */
+function hw6PprColumn(batch, column) {
+  const n = batch.p.shape[0];
+  const slice = tf.slice(batch.p, [0, column], [n, 1]);
+  const values = slice.dataSync();
+  slice.dispose();
+  const p = new Float64Array(values.length);
+  for (let i = 0; i < values.length; i++) p[i] = values[i];
+  return hw6ResultFromColumn(batch, column, p);
+}
+
+/**
+ * Batched personalized PageRank: every user node is a restart seed, so all
+ * seeds are propagated at once. The result is cached per (graph, alpha).
+ *
+ * @param {Graph} graph
+ * @param {number} alpha
+ * @param {number} maxIter
+ * @param {number} tol
+ * @returns {object} cached batch
+ */
+function hw6BatchedPpr(graph, alpha, maxIter, tol) {
+  if (HW6_PPR_CACHE && HW6_PPR_CACHE.graph === graph && HW6_PPR_CACHE.alpha === alpha) {
+    return HW6_PPR_CACHE;
+  }
+  hw6DisposePprCache();
+  const prop = hw6BlockPropagator(graph);
+  const nUsers = prop.nUsers;
+  const v = tf.tidy(function () {
+    // One restart column per user node: the user block is the identity, the
+    // movie block is zero, so the restart matrix has one row per graph node.
+    const users = tf.eye(nUsers);
+    const movies = tf.zeros([prop.nMovies, nUsers]);
+    return tf.concat([users, movies], 0);
+  });
+  const out = hw6Iterate(prop, alpha, v, maxIter, tol);
+  v.dispose();
+
+  HW6_PPR_CACHE = {
+    graph: graph,
+    alpha: alpha,
+    p: out.p,
+    convIter: out.convIter,
+    convRes: out.convRes,
+    lastRes: out.lastRes,
+    iterations: out.iterations,
+    converged: out.converged,
+  };
+  return HW6_PPR_CACHE;
 }
 
 // ---------------------------------------------------------------------------

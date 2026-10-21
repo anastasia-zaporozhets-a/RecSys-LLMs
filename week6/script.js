@@ -1111,7 +1111,25 @@ function mfScores(userId) {
  */
 function movieScores(p, graph) {
   // TODO(hw6): select the movie-node entries of `p`, in `graph.movieIds` order.
-  throw new Error("TODO(hw6): movieScores is not implemented yet.");
+  if (!graph) throw new Error("movieScores: a graph is required.");
+  const movieIds = Array.isArray(graph.movieIds) ? graph.movieIds : [];
+  const count = movieIds.length;
+  const out = new Float64Array(count);
+  if (!p || typeof p.length !== "number") {
+    throw new Error("movieScores: a propagation vector of node probabilities is required.");
+  }
+
+  const nodes = Array.isArray(graph.movieNodes) ? graph.movieNodes : null;
+  const userCount = Array.isArray(graph.userIds) ? graph.userIds.length : 0;
+  for (let k = 0; k < count; k++) {
+    const node = nodes ? Number(nodes[k]) : userCount + k;
+    const value = Number(p[node]);
+    if (!Number.isFinite(value)) {
+      throw new Error("movieScores: propagation vector has no finite value at node " + node + ".");
+    }
+    out[k] = value;
+  }
+  return out;
 }
 
 /**
@@ -1149,7 +1167,52 @@ function movieScores(p, graph) {
  */
 function recommendTopK(method, userId, K, split) {
   // TODO(hw6): filter the candidate pool, sort by score desc / id asc, slice to K.
-  throw new Error("TODO(hw6): recommendTopK is not implemented yet.");
+  const known = method === "popularity" || method === "pagerank" || method === "ppr" || method === "mf";
+  if (!known) return [];
+
+  const rawK = Number(K);
+  const k = Number.isFinite(rawK) ? Math.floor(rawK) : 10;
+  if (!(k > 0)) return [];
+
+  const rawUser = Number(userId);
+  if (!Number.isFinite(rawUser)) return [];
+
+  const name = split === "val" ? "val" : "test";
+  const alpha = hw6ReadAlpha();
+  const excluded = hw6ExclusionSet(name, rawUser);
+  const vector = hw6ScoreVector(method, rawUser, alpha, name);
+  const ids = vector.movieIds;
+  const scores = vector.scores;
+
+  const eligible = [];
+  for (let i = 0; i < ids.length; i++) {
+    const movieId = ids[i];
+    if (excluded.has(movieId)) continue;
+    const score = Number(scores[i]);
+    // A method that cannot place a movie reports -Infinity; such a movie is not
+    // an eligible recommendation, so it is dropped instead of filling the list.
+    if (!Number.isFinite(score)) continue;
+    eligible.push({ movieId: movieId, score: score });
+  }
+
+  eligible.sort(function (a, b) {
+    if (a.score === b.score) return a.movieId - b.movieId;
+    return a.score > b.score ? -1 : 1;
+  });
+
+  const top = eligible.slice(0, k);
+  const out = [];
+  for (let i = 0; i < top.length; i++) {
+    const movieId = top[i].movieId;
+    out.push({
+      movieId: movieId,
+      title: hw6Title(movieId),
+      genres: hw6Genres(movieId),
+      score: top[i].score,
+      popularity: hw6PopularityOf(movieId),
+    });
+  }
+  return out;
 }
 
 /**
@@ -1182,7 +1245,75 @@ function recommendTopK(method, userId, K, split) {
  */
 function recallAtK(method, K, split) {
   // TODO(hw6): macro-average Recall@K over the shared cohort, with exclusions.
-  throw new Error("TODO(hw6): recallAtK is not implemented yet.");
+  const name = split === "val" ? "val" : "test";
+  const rawK = Number(K);
+  const k = Number.isFinite(rawK) ? Math.floor(rawK) : 10;
+  const grades = HW6_STATE.gradesBySplit ? HW6_STATE.gradesBySplit[name] : null;
+  if (!grades) {
+    return { recall: 0, cohort: [], excludedUnseen: 0, excludedNoEligible: 0, perUser: [] };
+  }
+
+  // Exclusion counters cover the candidate users (observed in training and
+  // present in the split), the same scope the provided exclusion helper uses,
+  // so the cohort size and the exclusions describe one population.
+  const unseenIds = new Set();
+  let excludedUnseen = 0;
+  let excludedNoEligible = 0;
+  HW6_STATE.trainUserIds.forEach(function (userId) {
+    const gradeMap = grades.get(userId);
+    if (!gradeMap) return;
+    const excluded = hw6ExclusionSet(name, userId);
+    let eligible = 0;
+    gradeMap.forEach(function (rating, movieId) {
+      if (rating < 4.0) return;
+      if (!HW6_STATE.candidateSet.has(movieId)) {
+        if (!unseenIds.has(movieId)) {
+          unseenIds.add(movieId);
+          excludedUnseen++;
+        }
+        return;
+      }
+      if (excluded.has(movieId)) return;
+      eligible++;
+    });
+    if (eligible === 0) excludedNoEligible++;
+  });
+
+  const cohort = hw6SharedCohort(name);
+  const perUser = [];
+  let recallSum = 0;
+  for (let i = 0; i < cohort.length; i++) {
+    const userId = cohort[i];
+    const gradeMap = grades.get(userId);
+    const excluded = hw6ExclusionSet(name, userId);
+    const relevant = [];
+    if (gradeMap) {
+      gradeMap.forEach(function (rating, movieId) {
+        if (rating < 4.0) return;
+        if (!HW6_STATE.candidateSet.has(movieId)) return;
+        if (excluded.has(movieId)) return;
+        relevant.push(movieId);
+      });
+    }
+
+    const recs = recommendTopK(method, userId, k, name);
+    const recommended = new Set();
+    for (let r = 0; r < recs.length; r++) recommended.add(recs[r].movieId);
+    let hit = 0;
+    for (let r = 0; r < relevant.length; r++) if (recommended.has(relevant[r])) hit++;
+
+    const relevantCount = relevant.length;
+    recallSum += relevantCount > 0 ? hit / relevantCount : 0;
+    perUser.push({ userId: userId, relevant: relevantCount, hit: hit });
+  }
+
+  return {
+    recall: cohort.length ? recallSum / cohort.length : 0,
+    cohort: cohort.slice(),
+    excludedUnseen: excludedUnseen,
+    excludedNoEligible: excludedNoEligible,
+    perUser: perUser,
+  };
 }
 
 // ---------------------------------------------------------------------------
