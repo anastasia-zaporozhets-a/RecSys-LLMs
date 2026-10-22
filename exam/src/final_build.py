@@ -82,9 +82,11 @@ def hybrid_ranking(history: list[tuple[int, float]], ppr: list[tuple[int, float]
 
 
 def build_final(method: str, alpha: float, beta: float, w_ppr: float = 1.0,
-                w_hist: float = 0.0, w_pop: float = 0.0, n_history: int = 5,
-                log=print, eval_block: str = H.EVAL_BLOCK_FINAL,
-                train_blocks: list[str] | None = None) -> tuple[dict[str, list[int]], dict]:
+                 w_hist: float = 0.0, w_pop: float = 0.0, n_history: int = 5,
+                 log=print, eval_block: str = H.EVAL_BLOCK_FINAL,
+                 train_blocks: list[str] | None = None,
+                 ppr_scores: dict[str, list[tuple[int, float]]] | None = None,
+                 ) -> tuple[dict[str, list[int]], dict]:
     """Refit on weeks 11-30 and produce the top-5 lists for the 1,260 submission users."""
     train_blocks = train_blocks or H.TRAIN_BLOCKS_FINAL
     inter = H.load_interactions()
@@ -103,8 +105,7 @@ def build_final(method: str, alpha: float, beta: float, w_ppr: float = 1.0,
         f"{float(np.median(list(ratio.values()))):.3f} max {max(ratio.values()):.3f}")
 
     t0 = time.perf_counter()
-    ppr_scores = None
-    if method in ("ppr", "hybrid", "hybrid_rrf"):
+    if method in ("ppr", "hybrid", "hybrid_rrf") and ppr_scores is None:
         user_list = sorted(user_train_set.keys())
         item_list = sorted(set(train_sum["tv_show_id"].astype(int).tolist()))
         user2idx = {u: i for i, u in enumerate(user_list)}
@@ -138,7 +139,8 @@ def build_final(method: str, alpha: float, beta: float, w_ppr: float = 1.0,
     recs, fallback = H.make_recs(method_scores, pool, pop, user_train_set, cold, 5)
     log(f"  fallback users served by the popularity baseline: {fallback}")
     return recs, {"pool": pool, "popularity": pop, "cold": cold, "user_train_set": user_train_set,
-                  "user_train_list": user_train_list, "train_sum": train_sum, "progs": progs}
+                  "user_train_list": user_train_list, "train_sum": train_sum, "progs": progs,
+                  "ppr_scores": ppr_scores}
 
 
 def check_and_write(recs: dict[str, list[int]], out_path: Path, pool: set[int],

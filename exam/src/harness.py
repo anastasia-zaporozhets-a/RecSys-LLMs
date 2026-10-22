@@ -4,8 +4,10 @@
 Protocol (identical for every method):
   * validation: fit on block 11-20 interactions, evaluate on 21-30;
     final: fit on 11-20 + 21-30, predict 31-42.
-  * target per user = the user's top-5 programmes in the evaluation block ranked
-    by summed overlap_seconds (ties by tv_show_id).
+  * get_eval_targets returns both the user's top-5 programmes by summed
+    overlap_seconds and the set of all programmes watched in the evaluation
+    block. From step 4 onward, configuration selection uses the all-watched
+    target because its validation ordering better matched Kaggle results.
   * MAP@5 = Kaggle definition, macro-averaged over users with >= 1 watched
     programme in the evaluation block.
   * candidate pool = labelled programmes airing in the evaluation block schedule.
