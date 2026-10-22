@@ -378,7 +378,8 @@ class Features:
     names: list[str]
 
 
-def build_features(phase, ppr, exposure, stats, train_schedule, target_schedule, catalogue, categories):
+def build_features(phase, ppr, exposure, stats, train_schedule, target_schedule, catalogue, categories,
+                   candidate_size=50):
     """No labels passed here: candidates and every feature are label-independent."""
     category = catalogue.set_index("tv_show_id").category.fillna("__missing__").astype(str)
     cat_index = {name: index for index, name in enumerate(categories)}
@@ -389,14 +390,14 @@ def build_features(phase, ppr, exposure, stats, train_schedule, target_schedule,
     cat_seconds["category"] = cat_seconds.tv_show_id.map(category).fillna("__missing__")
     cat_seconds = cat_seconds.groupby(["user_id", "category"]).seconds.sum()
     user_seconds = stats.groupby(level="user_id").seconds.sum()
-    pop50 = [int(item) for item in phase.popularity.index][:50]
+    pop50 = [int(item) for item in phase.popularity.index][:candidate_size]
     # A per-user slice avoids repeated scans of the full pair table.
     user_stats = {user: frame.droplevel("user_id") for user, frame in stats.groupby(level="user_id", sort=False)}
     numeric, rows, onehot_col = [], [], []
     for index, user in enumerate(phase.users):
-        history50 = [item for item, _ in phase.history_lists.get(user, []) if item in phase.pool][:50]
-        candidates = sorted(set(history50) | {item for item, _ in ppr.ranking[user][:50]} |
-                            {item for item, _ in exposure.ranking[user][:50]} | set(pop50))
+        history50 = [item for item, _ in phase.history_lists.get(user, []) if item in phase.pool][:candidate_size]
+        candidates = sorted(set(history50) | {item for item, _ in ppr.ranking[user][:candidate_size]} |
+                            {item for item, _ in exposure.ranking[user][:candidate_size]} | set(pop50))
         positions = np.searchsorted(phase.items, candidates)
         own = user_stats.get(user)
         for item, pos in zip(candidates, positions):

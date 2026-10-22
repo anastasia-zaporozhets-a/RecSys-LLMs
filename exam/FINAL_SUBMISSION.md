@@ -1,6 +1,18 @@
 # Current designated final submission
 
-**`submission_v4_1.csv`** is the designated final so far.
+**`submission_v5_ltr.csv`** is the designated final so far.
+
+This is the Step 6 LightGBM LambdaRank model: all-watched binary relevance,
+seed **12345**, **127 trees** selected by early stopping on the user-level
+holdout, then refitted on all validation users. Candidates are the union of
+top-50 history, PPR alpha 0.5, E48_uniform, and popularity. Features for the
+submitted file use **11–30 viewing** and **31–42 airings only**.
+
+Step 6 held-out all-watched MAP@5 was **0.7317445023148148**, compared with
+**0.6824103009259260** for v4_1 on the same users. This is held-out validation,
+not an evaluation of the model after its all-user refit.
+
+## Previous designated submission: v4_1
 
 Configuration: RRF (`k=60`) of exposure `E_48_uniform` at weight **0.5**
 and the `v3_1` ranking at weight **1.0**, using top-200 input rankings.
@@ -18,7 +30,9 @@ User-reported scores; screenshots saved by the user.
 
 | Submission | Public | Private |
 |---|---:|---:|
-| v4_1 — designated final | 0.35383 | 0.33450 |
+| v5_ltr — designated final | 0.39205 | 0.37705 |
+| v5_blend | 0.37766 | 0.36082 |
+| v4_1 | 0.35383 | 0.33450 |
 | v4_2 | 0.34898 | 0.32602 |
 | v4_3 | Not submitted | Not submitted |
 | v3_1 | 0.33173 | 0.31829 |
@@ -31,9 +45,9 @@ User-reported scores; screenshots saved by the user.
 
 ## Step 6 experiment
 
-`src/step6_ltr.py` will compare five validation target definitions using
-Spearman correlation against the **nine public scores** above, excluding the
-unsubmitted v4_3. Public scores select only the evaluation definition;
+`src/step6_ltr.py` compared five validation target definitions using
+Spearman correlation against the **nine pre-v5 public scores** above, excluding
+the unsubmitted v4_3. **All-watched** was selected. Public scores selected only the evaluation definition;
 they are not ranker features, labels, weights, or fitting targets. Private
 scores are recorded here for results tracking and are not used in calibration.
 
@@ -41,7 +55,17 @@ The ranker uses a seed-12345 80/20 user split for early stopping and reports
 held-out MAP@5 against v4_1 on the same users. It then refits on all validation
 users at the chosen iteration count. If all-watched is selected, every watched
 item is relevance 1 (binary); ranked top-five targets use grades 5 through 1.
-Final v5 files are experimental until generated, validated, and evaluated.
+The two v5 files have now been generated, validated and evaluated on Kaggle.
+
+## Step 7 experiment
+
+`src/step7_ltr_plus.py` tests candidate budget, weekly feature scaling, a second
+temporal training fold, channel/time/season/recency features, and five-seed
+score averaging. Selection uses validation only; no new public/private scores
+are consumed. It preserves a shared user-level holdout across both folds,
+retraining the v5 recipe on training users for an honest baseline comparison.
+The best two distinct recipes are selected by 11–20 -> 21–30 held-out
+all-watched MAP@5, then refitted on 100% of their training queries.
 
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.
