@@ -152,7 +152,7 @@ def main():
                    recs, fb, time.perf_counter() - t0)
 
     # --------------------------------------------- hybrid RRF (rank fusion)
-    hr("M3 - HYBRID: RECIPIPROCAL-RANK FUSION (PPR + HISTORY + POPULARITY)")
+    hr("M3 - HYBRID: RECIPROCAL-RANK FUSION (PPR + HISTORY + POPULARITY)")
     CAND = 200
     pop_rank = [int(it) for it in pop.index if int(it) in pool][:CAND]
     for wp, wh, wq in ((1.0, 0.0, 0.0), (1.0, 1.0, 0.0), (1.0, 1.0, 0.5), (1.0, 0.0, 0.5),

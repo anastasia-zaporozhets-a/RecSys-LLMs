@@ -2,7 +2,7 @@
 """C) Final submissions for the two baselines, through the same pipeline.
 
 Same protocol as src/step3_final.py and src/step3_tune.py:
-  * refit on weeks 11-20 + 21-30 (the 31-30 training window);
+  * refit on weeks 11-20 + 21-30 (the 11-30 training window);
   * candidate pool = labelled programmes airing in the 31-42 schedule;
   * exactly 5 distinct ids per user, popularity fill, popularity baseline for
     cold-start users, repeats allowed;

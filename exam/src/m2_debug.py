@@ -261,7 +261,6 @@ def main():
     X_scaled = normalize(sparse.hstack([X_cg_raw * w, X_t_raw], format="csr"), norm="l2", axis=1)
     score_with(X_scaled, f"cat+genres scaled x{w:.2f} + title (balanced)")
     print(f"  (variant scoring took {time.perf_counter() - t0:.1f}s)")
-    print(f"  (variant scoring took {time.perf_counter() - t0:.1f}s)")
     print()
     print("  reference points on the same protocol: B1 popularity 0.147777 | B2 history 0.241036 | "
           "PPR a=0.3 0.247010")
