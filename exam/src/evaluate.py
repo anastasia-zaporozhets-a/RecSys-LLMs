@@ -1,36 +1,45 @@
 #!/usr/bin/env python3
-"""Step 2: shared evaluation harness, baselines, PPR and content-based."""
+"""Step 2 orchestrator: baselines B1/B2, M1 Personalized PageRank, M2 content-based.
 
+Validation protocol (identical for every method):
+  fit on block 11-20 interactions, evaluate on block 21-30;
+  candidate pool = labelled programmes airing in the 21-30 schedule;
+  target = user's top-5 programmes in 21-30 by summed overlap_seconds (ties by id);
+  MAP@5 macro-averaged over the 4,799 users with >= 1 watched programme in 21-30;
+  repeats allowed; 5 distinct ids per user; popularity fill; popularity for cold start.
+
+Usage:
+    .venv/bin/python src/evaluate.py                 # all alphas (~11 min)
+    .venv/bin/python src/evaluate.py --alphas 0.3    # single alpha (~1.5 min)
+    .venv/bin/python src/evaluate.py --skip-ppr      # baselines + M2 only (~20 s)
+
+Writes out/step2_results.md, out/val_<method>.csv and out/step2_stdout.log content.
+"""
 from __future__ import annotations
 
-import csv
-import os
+import argparse
 import platform
-import re
 import sys
 import time
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from scipy.sparse.linalg import bicgstab
 
-EXAM = Path(__file__).resolve().parents[1]
-DATA = EXAM / "data"
-OUT = EXAM / "out"
-OUT.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness as H  # noqa: E402
+import m2_content as M2  # noqa: E402
 
 RANDOM_SEED = 12345
 np.random.seed(RANDOM_SEED)
 
-REPORT_LINES = []
+REPORT: list[str] = []
 
 
 def log(msg="", flush=True):
     print(msg, flush=flush)
-    REPORT_LINES.append(str(msg))
+    REPORT.append(str(msg))
 
 
 def hr(title):
@@ -40,235 +49,226 @@ def hr(title):
     log("=" * 100)
 
 
-def fmt_pct(x):
-    return f"{100.0 * x:.4f}%"
+def ppr_batched(eval_users, user2idx, item2idx, user_list, item_list,
+                user_train_list, user_train_set, pool, alpha,
+                chunk_size=500, max_iter=30, tol=1e-6):
+    """Personalized PageRank on the user-programme bipartite graph.
 
-
-def load_schedules(blocks):
-    sched = {}
-    for b in blocks:
-        path = DATA / f"export_arh_{b}-final.csv"
-        t0 = time.perf_counter()
-        df = pd.read_csv(path, dtype={"tv_show_id": "int64", "channel_id": "int64", "duration": "int64"}, low_memory=False)
-        df = df[df["tv_show_id"] != 0].copy()
-        df["start_local"] = pd.to_datetime(df["start_time"], format="%d.%m.%Y %H:%M:%S", errors="raise")
-        sched[b] = df
-        log(f"  loaded schedule {b}: {len(df):,} labelled rows in {time.perf_counter() - t0:.2f}s")
-    return sched
-
-
-def get_pool_and_airtime(sched_df):
-    pool = set(int(x) for x in sched_df["tv_show_id"].unique())
-    airtime = sched_df.groupby("tv_show_id")["duration"].sum().astype(np.int64)
-    return pool, airtime
-
-
-def load_interactions():
+    Edge weight w(u,i) = log1p(seconds/60).  Restart vector = the user's own
+    programmes weighted by that edge weight (normalised), scaled by (1-alpha).
+    Power iteration: R <- alpha * P^T R + V, chunked over users.
+    """
     t0 = time.perf_counter()
-    df = pd.read_csv(OUT / "interactions.csv", dtype={"user_id": str, "tv_show_id": str, "block": str})
-    df["tv_show_id"] = df["tv_show_id"].astype(np.int64)
-    df["overlap_seconds"] = df["overlap_seconds"].astype(np.int64)
-    df["airings"] = df["airings"].astype(np.int64)
-    log(f"  loaded interactions: {len(df):,} rows in {time.perf_counter() - t0:.2f}s")
-    return df
-
-
-def load_programmes():
-    t0 = time.perf_counter()
-    df = pd.read_csv(OUT / "programmes.csv", dtype={"tv_show_id": "int64"})
-    log(f"  loaded programmes: {len(df):,} rows in {time.perf_counter() - t0:.2f}s")
-    return df
-
-
-def get_user_train(inter_df, train_blocks):
-    train = inter_df[inter_df["block"].isin(train_blocks)].copy()
-    user_train_sum = train.groupby(["user_id", "tv_show_id"])["overlap_seconds"].sum().reset_index()
-    user_train_sum = user_train_sum.sort_values(["user_id", "overlap_seconds", "tv_show_id"], ascending=[True, False, True])
-    return user_train_sum
-
-
-def get_eval_targets(inter_df, eval_block):
-    eval_df = inter_df[inter_df["block"] == eval_block].copy()
-    g = eval_df.groupby(["user_id", "tv_show_id"])["overlap_seconds"].sum().reset_index()
-    g = g.sort_values(["user_id", "overlap_seconds", "tv_show_id"], ascending=[True, False, True])
-    targets_top5 = {}
-    targets_all = {}
-    for uid, grp in g.groupby("user_id"):
-        targets_all[uid] = set(grp["tv_show_id"].tolist())
-        targets_top5[uid] = grp["tv_show_id"].tolist()[:5]
-    return targets_top5, targets_all
-
-
-def ap_at_k(predicted, actual_set, k=5):
-    if len(actual_set) == 0:
-        return 0.0
-    score = 0.0
-    num_hits = 0.0
-    for i, p in enumerate(predicted[:k]):
-        if p in actual_set:
-            num_hits += 1.0
-            score += num_hits / (i + 1.0)
-    return score / min(len(actual_set), k)
-
-
-def map_at_k(pred_lists, targets, k=5):
-    users = [u for u in pred_lists if u in targets and len(targets[u]) >= 1]
-    if not users:
-        return 0.0, 0
-    s = 0.0
-    for u in users:
-        s += ap_at_k(pred_lists[u], targets[u], k)
-    return s / len(users), len(users)
-
-
-def build_popularity(train_sum, pool):
-    users_per_item = train_sum.groupby("tv_show_id")["user_id"].nunique()
-    pop = users_per_item[users_per_item.index.isin(pool)].copy()
-    pop = pop.sort_values(ascending=False)
-    return pop
-
-
-def make_recs(method_scores, pool, popularity_ordered, user_train_set, cold_start_users, k=5):
-    recs = {}
-    fallback_count = 0
-    all_uids = set(method_scores.keys()) | set(cold_start_users)
-    for uid in all_uids:
-        if uid in cold_start_users or uid not in user_train_set or len(user_train_set[uid]) == 0:
-            lst = []
-            for it in popularity_ordered.index:
-                if int(it) in pool:
-                    lst.append(int(it))
-                if len(lst) == k:
-                    break
-            recs[uid] = lst[:k]
-            fallback_count += 1
+    n_u, n_i = len(user_list), len(item_list)
+    n = n_u + n_i
+    rows, cols, data = [], [], []
+    for uid, items in user_train_list.items():
+        if uid not in user2idx:
             continue
-        ranked = []
-        seen = set()
-        for it, sc in method_scores.get(uid, []):
-            it = int(it)
-            if it in seen:
+        for it, sec in items:
+            if it not in item2idx:
                 continue
-            seen.add(it)
-            ranked.append(it)
-            if len(ranked) == k:
+            w = np.log1p(float(sec) / 60.0)
+            u, i = user2idx[uid], item2idx[it]
+            rows.append(u); cols.append(n_u + i); data.append(w)
+            rows.append(n_u + i); cols.append(u); data.append(w)
+    A = sparse.coo_matrix((data, (rows, cols)), shape=(n, n)).tocsr()
+    deg = np.array(A.sum(axis=1)).ravel()
+    deg[deg == 0] = 1.0
+    P = (sparse.diags(1.0 / deg) @ A).tocsr()
+    PT = P.T.tocsr()
+    users = [u for u in eval_users if u in user2idx and user_train_set.get(u)]
+    log(f"  PPR alpha={alpha}: graph n={n} (users={n_u}, items={n_i}), "
+        f"scored users={len(users):,}, chunk={chunk_size}, max_iter={max_iter}, tol={tol}")
+    out = {}
+    for c0 in range(0, len(users), chunk_size):
+        c1 = min(c0 + chunk_size, len(users))
+        chunk = users[c0:c1]
+        tc = time.perf_counter()
+        V = np.zeros((n, len(chunk)))
+        for j, uid in enumerate(chunk):
+            s = sum(np.log1p(float(sec) / 60.0) for it, sec in user_train_list[uid] if it in item2idx)
+            if s == 0:
+                V[user2idx[uid], j] = 1.0
+            else:
+                for it, sec in user_train_list[uid]:
+                    if it in item2idx:
+                        V[n_u + item2idx[it], j] += np.log1p(float(sec) / 60.0) / s
+        V *= (1.0 - alpha)
+        R = V.copy()
+        for it in range(max_iter):
+            R_new = alpha * (PT @ R) + V
+            diff = np.max(np.sum(np.abs(R_new - R), axis=0))
+            R = R_new
+            if diff < tol:
+                log(f"    chunk {c0 // chunk_size + 1} ({len(chunk)} users) converged at iter {it + 1}, "
+                    f"diff={diff:.2e}, {time.perf_counter() - tc:.1f}s")
                 break
-        if len(ranked) < k:
-            for it in popularity_ordered.index:
-                it = int(it)
-                if it in seen:
-                    continue
-                seen.add(it)
-                ranked.append(it)
-                if len(ranked) == k:
-                    break
-        recs[uid] = ranked[:k]
-    return recs, fallback_count
+        else:
+            log(f"    chunk {c0 // chunk_size + 1} ({len(chunk)} users) finished {max_iter} iters, "
+                f"{time.perf_counter() - tc:.1f}s")
+        items_scores = R[n_u:n_u + n_i, :]
+        for j, uid in enumerate(chunk):
+            col = items_scores[:, j]
+            scored = [(int(it), float(col[k])) for k, it in enumerate(item_list) if int(it) in pool]
+            scored.sort(key=lambda x: (-x[1], x[0]))
+            out[uid] = scored
+    log(f"  PPR alpha={alpha} runtime: {time.perf_counter() - t0:.1f}s")
+    return out
 
 
-def main_quick_b1b2():
-    hr("STEP 2: QUICK B1/B2 CHECK (FIXED USER IDS)")
-    log(f"Environment: Python {sys.version.split()[0]} {platform.platform()}")
-    log(f"Random seed: {RANDOM_SEED}")
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--alphas", default="0.3,0.5,0.7,0.85")
+    ap.add_argument("--skip-ppr", action="store_true")
+    args = ap.parse_args()
+    alphas = [float(a) for a in args.alphas.split(",")]
 
-    inter = load_interactions()
-    progs = load_programmes()
-    sched_all = load_schedules(["11-20", "21-30", "31-42"])
+    t_script = time.perf_counter()
+    hr("STEP 2 - EVALUATION HARNESS, BASELINES, PPR, CONTENT-BASED")
+    log(f"Environment : Python {sys.version.split()[0]} {platform.platform()}")
+    log(f"numpy {np.__version__} | pandas {pd.__version__} | scipy {__import__('scipy').__version__} | "
+        f"scikit-learn {__import__('sklearn').__version__}")
+    log(f"Seed        : {RANDOM_SEED} (no stochastic component in this step)")
+    log(f"Protocol    : train {H.TRAIN_BLOCKS_VAL} -> eval {H.EVAL_BLOCK_VAL}; "
+        f"pool = labelled programmes in the {H.EVAL_BLOCK_VAL} schedule; K=5; repeats allowed; "
+        "popularity fill; popularity for cold-start users.")
 
-    train_blocks_val = ["11-20"]
-    eval_block_val = "21-30"
-    train_sum_val = get_user_train(inter, train_blocks_val)
-    pool_val, airtime_val = get_pool_and_airtime(sched_all[eval_block_val])
-    pool_val = set(int(x) for x in pool_val)
+    inter = H.load_interactions()
+    progs = H.load_programmes()
+    train_sum = H.get_user_train(inter, H.TRAIN_BLOCKS_VAL)
+    targets_top5, targets_all = H.get_eval_targets(inter, H.EVAL_BLOCK_VAL)
+    user_train_set, user_train_list = H.build_user_histories(train_sum)
+    n_eval = len([u for u in targets_all if targets_all[u]])
+    log(f"\n  eval users with >=1 watched programme in {H.EVAL_BLOCK_VAL}: {n_eval:,} "
+        f"(expected {H.EXPECTED_EVAL_USERS})")
+    assert n_eval == H.EXPECTED_EVAL_USERS, f"eval user count {n_eval} != {H.EXPECTED_EVAL_USERS}"
+    log(f"  training users: {len(user_train_set):,} (expected {H.EXPECTED_TRAIN_USERS})")
+    assert len(user_train_set) == H.EXPECTED_TRAIN_USERS
+    sub = pd.read_csv(H.DATA / "submission.csv", dtype={"user_id": str})
+    log(f"  submission users: {len(sub):,} (ids kept as strings)")
+    assert len(sub) == H.EXPECTED_SUB_USERS
 
-    targets_top5_val, targets_all_val = get_eval_targets(inter, eval_block_val)
-    n_eval = len([u for u in targets_all_val if len(targets_all_val[u]) >= 1])
-    log(f"Validation: train on {train_blocks_val}, eval on {eval_block_val}")
-    log(f"  pool_val size: {len(pool_val):,}")
-    log(f"  eval users with >=1 watched in {eval_block_val}: {n_eval:,}")
-    assert n_eval == 4799, f"Expected 4799 eval users, got {n_eval}"
+    pool = H.load_pool(H.EVAL_BLOCK_VAL)
+    log(f"  candidate pool: {len(pool):,} labelled programmes airing in {H.EVAL_BLOCK_VAL}")
+    cold = set(targets_all.keys()) - set(user_train_set.keys())
+    log(f"  cold-start eval users (no training interactions): {len(cold):,}")
+    pop = H.build_popularity(train_sum, pool)
+    eval_users = list(targets_all.keys())
+    rows_table = []
 
-    user_train_set_val = defaultdict(set)
-    user_train_list_val = defaultdict(list)
-    for _, row in train_sum_val.iterrows():
-        uid = row["user_id"]
-        it = int(row["tv_show_id"])
-        user_train_set_val[uid].add(it)
-        user_train_list_val[uid].append((it, float(row["overlap_seconds"])))
-    for uid in user_train_list_val:
-        user_train_list_val[uid].sort(key=lambda x: (-x[1], x[0]))
-
-    n_train_users = len(user_train_set_val)
-    log(f"  training users: {n_train_users:,}")
-    assert n_train_users == 4834, f"Expected 4834 training users, got {n_train_users}"
-
-    cold_start_users_val = set(targets_all_val.keys()) - set(user_train_set_val.keys())
-    log(f"  cold-start users among eval users: {len(cold_start_users_val):,}")
-
-    pop_val = build_popularity(train_sum_val, pool_val)
-    popularity_ordered_val = pop_val
-    eval_users_val = list(targets_all_val.keys())
-
-    # check submission users
-    sub = pd.read_csv(DATA / "submission.csv", dtype={"user_id": str})
-    sub_users = set(sub["user_id"].tolist())
-    log(f"  submission users: {len(sub_users)} (all found as strings; 2 have no labelled interactions in training blocks)")
-
-    # B1
+    # ------------------------------------------------------------------ B1
+    hr("B1 - POPULARITY BASELINE (distinct training users per programme, pool-restricted)")
     t0 = time.perf_counter()
-    pop_recs_val2 = {}
-    for uid in eval_users_val:
-        lst = []
-        for it in popularity_ordered_val.index:
-            it = int(it)
-            if it not in pool_val:
-                continue
-            lst.append(it)
-            if len(lst) == 5:
-                break
-        pop_recs_val2[uid] = lst
+    pop_recs = {}
+    pop_ids = [int(it) for it in pop.index if int(it) in pool]
+    for u in eval_users:
+        pop_recs[u] = pop_ids[:5]
     t_b1 = time.perf_counter() - t0
-    map_top5_b1, n_users_b1 = map_at_k(pop_recs_val2, targets_top5_val, k=5)
-    map_all_b1, _ = map_at_k(pop_recs_val2, targets_all_val, k=5)
-    log(f"  B1 MAP@5 (top-5 target): {map_top5_b1:.6f} over {n_users_b1} users")
-    log(f"  B1 MAP@5 (all-watched):   {map_all_b1:.6f}")
-    log(f"  B1 runtime: {t_b1:.3f}s")
+    m5, n_u5 = H.map_at_k(pop_recs, targets_top5, 5)
+    ma, _ = H.map_at_k(pop_recs, targets_all, 5)
+    log(f"  MAP@5 (top-5 target) = {m5:.6f}   MAP@5 (all-watched) = {ma:.6f}   "
+        f"users = {n_u5:,}   runtime = {t_b1:.3f}s")
+    rows_table.append(("B1_popularity", "distinct training users per programme, pool-restricted",
+                       m5, ma, t_b1, 0))
 
-    # B2
+    # ------------------------------------------------------------------ B2
+    hr("B2 - PERSONAL HISTORY BASELINE (own training programmes by overlap_seconds)")
     t0 = time.perf_counter()
-    hist_recs_val = {}
-    for uid in eval_users_val:
+    hist_recs = {}
+    hist_scores = {}
+    for u in eval_users:
         lst = []
-        for it, sc in user_train_list_val.get(uid, []):
-            it = int(it)
-            if it not in pool_val:
-                continue
-            if it in lst:
-                continue
-            lst.append(it)
+        for it, _ in user_train_list.get(u, []):
+            if it in pool and it not in lst:
+                lst.append(it)
             if len(lst) == 5:
                 break
-        if len(lst) < 5:
-            for it in popularity_ordered_val.index:
-                it = int(it)
-                if it in lst:
-                    continue
-                if it not in pool_val:
-                    continue
-                lst.append(int(it))
-                if len(lst) == 5:
-                    break
-        hist_recs_val[uid] = lst
+        hist_scores[u] = [(it, 0.0) for it in lst]
+    hist_recs, fb_b2 = H.make_recs(hist_scores, pool, pop, user_train_set, cold, 5)
     t_b2 = time.perf_counter() - t0
-    map_top5_b2, n_users_b2 = map_at_k(hist_recs_val, targets_top5_val, k=5)
-    map_all_b2, _ = map_at_k(hist_recs_val, targets_all_val, k=5)
-    log(f"  B2 MAP@5 (top-5 target): {map_top5_b2:.6f} over {n_users_b2} users")
-    log(f"  B2 MAP@5 (all-watched):   {map_all_b2:.6f}")
-    log(f"  B2 runtime: {t_b2:.3f}s")
+    m5, _ = H.map_at_k(hist_recs, targets_top5, 5)
+    ma, _ = H.map_at_k(hist_recs, targets_all, 5)
+    log(f"  MAP@5 (top-5 target) = {m5:.6f}   MAP@5 (all-watched) = {ma:.6f}   "
+        f"fallback users = {fb_b2:,}   runtime = {t_b2:.3f}s")
+    rows_table.append(("B2_personal_history", "own training programmes by overlap_seconds, pool-restricted",
+                       m5, ma, t_b2, fb_b2))
 
-    log("\nExpected reference (top-5 target): B1 0.1478, B2 0.2410")
-    log(f"Got: B1 {map_top5_b1:.4f}, B2 {map_top5_b2:.4f}")
+    # ------------------------------------------------------------------ M1
+    ppr_rows = []
+    ppr_recs_cache = {}
+    best = (None, -1.0)
+    if not args.skip_ppr:
+        hr("M1 - PERSONALIZED PAGERANK (bipartite user-programme graph)")
+        log("  edge weight = log1p(seconds/60); restart = own programmes weighted by that weight;")
+        log("  R <- alpha * P^T R + V; tol 1e-6 on max column L1 change; max_iter 30; chunk 500 users.")
+        user_list = sorted(user_train_set.keys())
+        item_list = sorted(set(train_sum["tv_show_id"].astype(int).tolist()))
+        user2idx = {u: i for i, u in enumerate(user_list)}
+        item2idx = {it: i for i, it in enumerate(item_list)}
+        for alpha in alphas:
+            t0 = time.perf_counter()
+            scores = ppr_batched(eval_users, user2idx, item2idx, user_list, item_list,
+                                 user_train_list, user_train_set, pool, alpha)
+            recs, fb = H.make_recs(scores, pool, pop, user_train_set, cold, 5)
+            m5, _ = H.map_at_k(recs, targets_top5, 5)
+            ma, _ = H.map_at_k(recs, targets_all, 5)
+            dt = time.perf_counter() - t0
+            log(f"  alpha={alpha}: MAP@5 (top-5 target) = {m5:.6f}   MAP@5 (all-watched) = {ma:.6f}   "
+                f"fallback users = {fb:,}   runtime = {dt:.1f}s")
+            ppr_rows.append((f"M1_PPR(alpha={alpha})",
+                             "log1p(sec/60) edges, own-programme restart, tol 1e-6, max_iter 30",
+                             m5, ma, dt, fb))
+            ppr_recs_cache[alpha] = recs
+            if m5 > best[1]:
+                best = (alpha, m5)
+        if best[0] is not None:
+            log(f"  selected alpha = {best[0]} (MAP@5 top-5 target = {best[1]:.6f})")
+    rows_table.extend(ppr_rows)
+
+    # ------------------------------------------------------------------ M2
+    hr("M2 - CONTENT-BASED (category + genres one-hot, TF-IDF of normalised title)")
+    t0 = time.perf_counter()
+    m2res, m2pool = M2.run(inter, progs, H.TRAIN_BLOCKS_VAL, H.EVAL_BLOCK_VAL, targets_top5,
+                            targets_all, user_train_set, user_train_list, cold, pop, eval_users)
+    t_m2 = time.perf_counter() - t0
+    for tag, d in m2res.items():
+        log(f"  {tag}: MAP@5 (top-5 target) = {d['top5']:.6f}   MAP@5 (all-watched) = {d['allw']:.6f}   "
+            f"fallback users = {d['fallback']:,}")
+        rows_table.append((tag, "cat+genres one-hot & title TF-IDF, seconds-weighted user profile, cosine",
+                           d["top5"], d["allw"], t_m2, d["fallback"]))
+
+    # ------------------------------------------------------------- table
+    hr("VALIDATION RESULTS (train 11-20 -> eval 21-30, K=5)")
+    log("method | params | MAP@5 (top-5 target) | MAP@5 (all-watched) | runtime | fallback users")
+    log("--- | --- | --- | --- | --- | ---")
+    for name, params, m5, ma, dt, fb in rows_table:
+        log(f"{name} | {params} | {m5:.6f} | {ma:.6f} | {dt:.3f}s | {fb}")
+    log(f"\nevaluated users: {n_eval:,} (macro-average over users with >= 1 watched programme in {H.EVAL_BLOCK_VAL})")
+    if best[0] is not None:
+        log(f"selected PPR configuration: alpha={best[0]}, MAP@5 (top-5 target)={best[1]:.6f}")
+
+    # ---------------------------------------------------------- save preds
+    hr("SAVING VALIDATION PREDICTIONS")
+    H.save_val("popularity", pop_recs, pool, pop)
+    H.log("  out/val_popularity.csv")
+    H.save_val("personal_history", hist_recs, pool, pop)
+    H.log("  out/val_personal_history.csv")
+    for alpha in alphas:
+        recs = ppr_recs_cache.get(alpha)
+        if recs is not None:
+            H.save_val(f"ppr_alpha{alpha}", recs, pool, pop)
+            H.log(f"  out/val_ppr_alpha{alpha}.csv")
+    for tag, d in m2res.items():
+        H.save_val(tag.replace("+", "_").replace(" ", "_"), d["recs"], m2pool, pop)
+        H.log(f"  out/val_{tag.replace('+', '_').replace(' ', '_')}.csv")
+
+    log(f"\ntotal runtime: {time.perf_counter() - t_script:.1f}s")
+    (H.OUT / "step2_results.md").write_text("\n".join(REPORT) + "\n", encoding="utf-8")
+    print(f"\nWrote {H.OUT / 'step2_results.md'}")
 
 
-if __name__ == '__main__':
-    main_quick_b1b2()
+ppr_recs_cache = {}
+
+if __name__ == "__main__":
+    main()
