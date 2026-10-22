@@ -49,74 +49,6 @@ def hr(title):
     log("=" * 100)
 
 
-def ppr_batched(eval_users, user2idx, item2idx, user_list, item_list,
-                user_train_list, user_train_set, pool, alpha,
-                chunk_size=500, max_iter=30, tol=1e-6):
-    """Personalized PageRank on the user-programme bipartite graph.
-
-    Edge weight w(u,i) = log1p(seconds/60).  Restart vector = the user's own
-    programmes weighted by that edge weight (normalised), scaled by (1-alpha).
-    Power iteration: R <- alpha * P^T R + V, chunked over users.
-    """
-    t0 = time.perf_counter()
-    n_u, n_i = len(user_list), len(item_list)
-    n = n_u + n_i
-    rows, cols, data = [], [], []
-    for uid, items in user_train_list.items():
-        if uid not in user2idx:
-            continue
-        for it, sec in items:
-            if it not in item2idx:
-                continue
-            w = np.log1p(float(sec) / 60.0)
-            u, i = user2idx[uid], item2idx[it]
-            rows.append(u); cols.append(n_u + i); data.append(w)
-            rows.append(n_u + i); cols.append(u); data.append(w)
-    A = sparse.coo_matrix((data, (rows, cols)), shape=(n, n)).tocsr()
-    deg = np.array(A.sum(axis=1)).ravel()
-    deg[deg == 0] = 1.0
-    P = (sparse.diags(1.0 / deg) @ A).tocsr()
-    PT = P.T.tocsr()
-    users = [u for u in eval_users if u in user2idx and user_train_set.get(u)]
-    log(f"  PPR alpha={alpha}: graph n={n} (users={n_u}, items={n_i}), "
-        f"scored users={len(users):,}, chunk={chunk_size}, max_iter={max_iter}, tol={tol}")
-    out = {}
-    for c0 in range(0, len(users), chunk_size):
-        c1 = min(c0 + chunk_size, len(users))
-        chunk = users[c0:c1]
-        tc = time.perf_counter()
-        V = np.zeros((n, len(chunk)))
-        for j, uid in enumerate(chunk):
-            s = sum(np.log1p(float(sec) / 60.0) for it, sec in user_train_list[uid] if it in item2idx)
-            if s == 0:
-                V[user2idx[uid], j] = 1.0
-            else:
-                for it, sec in user_train_list[uid]:
-                    if it in item2idx:
-                        V[n_u + item2idx[it], j] += np.log1p(float(sec) / 60.0) / s
-        V *= (1.0 - alpha)
-        R = V.copy()
-        for it in range(max_iter):
-            R_new = alpha * (PT @ R) + V
-            diff = np.max(np.sum(np.abs(R_new - R), axis=0))
-            R = R_new
-            if diff < tol:
-                log(f"    chunk {c0 // chunk_size + 1} ({len(chunk)} users) converged at iter {it + 1}, "
-                    f"diff={diff:.2e}, {time.perf_counter() - tc:.1f}s")
-                break
-        else:
-            log(f"    chunk {c0 // chunk_size + 1} ({len(chunk)} users) finished {max_iter} iters, "
-                f"{time.perf_counter() - tc:.1f}s")
-        items_scores = R[n_u:n_u + n_i, :]
-        for j, uid in enumerate(chunk):
-            col = items_scores[:, j]
-            scored = [(int(it), float(col[k])) for k, it in enumerate(item_list) if int(it) in pool]
-            scored.sort(key=lambda x: (-x[1], x[0]))
-            out[uid] = scored
-    log(f"  PPR alpha={alpha} runtime: {time.perf_counter() - t0:.1f}s")
-    return out
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--alphas", default="0.3,0.5,0.7,0.85")
@@ -197,6 +129,7 @@ def main():
     # ------------------------------------------------------------------ M1
     ppr_rows = []
     ppr_recs_cache = {}
+    ppr_scores_cache = {}
     best = (None, -1.0)
     if not args.skip_ppr:
         hr("M1 - PERSONALIZED PAGERANK (bipartite user-programme graph)")
@@ -208,7 +141,7 @@ def main():
         item2idx = {it: i for i, it in enumerate(item_list)}
         for alpha in alphas:
             t0 = time.perf_counter()
-            scores = ppr_batched(eval_users, user2idx, item2idx, user_list, item_list,
+            scores = H.ppr_batched(eval_users, user2idx, item2idx, user_list, item_list,
                                  user_train_list, user_train_set, pool, alpha)
             recs, fb = H.make_recs(scores, pool, pop, user_train_set, cold, 5)
             m5, _ = H.map_at_k(recs, targets_top5, 5)
@@ -220,6 +153,7 @@ def main():
                              "log1p(sec/60) edges, own-programme restart, tol 1e-6, max_iter 30",
                              m5, ma, dt, fb))
             ppr_recs_cache[alpha] = recs
+            ppr_scores_cache[alpha] = scores
             if m5 > best[1]:
                 best = (alpha, m5)
         if best[0] is not None:
@@ -237,6 +171,49 @@ def main():
             f"fallback users = {d['fallback']:,}")
         rows_table.append((tag, "cat+genres one-hot & title TF-IDF, seconds-weighted user profile, cosine",
                            d["top5"], d["allw"], t_m2, d["fallback"]))
+
+    # ------------------------------------------------------------------ M3
+    # Hybrid: reciprocal-rank fusion of the three single-method rankings.
+    # Weights are a small grid searched on the validation hold-out only.
+    if not args.skip_ppr and best[0] is not None:
+        hr("M3 - HYBRID (reciprocal-rank fusion: PPR + personal history + popularity)")
+        log("  weights (PPR, history, popularity) are selected on the 21-30 hold-out;")
+        log("  every component is trained on 11-20 only; the 31-42 schedule is not touched.")
+        ppr_scores_best = ppr_scores_cache[best[0]]
+        # each component ranking is truncated to its top-CAND_CUT candidates
+        CAND_CUT = 200
+        hist_rank = {u: [it for it, _ in user_train_list.get(u, []) if it in pool][:CAND_CUT]
+                     for u in eval_users}
+        pop_rank = [int(it) for it in pop.index if int(it) in pool][:CAND_CUT]
+        grid = []
+        for w_ppr in (1.0, 2.0):
+            for w_hist in (0.0, 1.0, 2.0):
+                for w_pop in (0.0, 0.5, 1.0):
+                    grid.append((w_ppr, w_hist, w_pop))
+        best_h = (None, -1.0, None, None)
+        for (wp, wh, wq) in grid:
+            t0 = time.perf_counter()
+            fused = {}
+            for u in eval_users:
+                ppr_rank = [it for it, _ in ppr_scores_best.get(u, [])][:200]
+                fused[u] = H.rank_fusion([ppr_rank, hist_rank.get(u, []), pop_rank],
+                                         [wp, wh, wq], k=5)
+            recs_h, fb_h = H.make_recs(fused, pool, pop, user_train_set, cold, 5)
+            m5h, _ = H.map_at_k(recs_h, targets_top5, 5)
+            mah, _ = H.map_at_k(recs_h, targets_all, 5)
+            dt = time.perf_counter() - t0
+            log(f"  w=({wp}, {wh}, {wq}): MAP@5 (top-5 target) = {m5h:.6f}  "
+                f"MAP@5 (all-watched) = {mah:.6f}  runtime = {dt:.1f}s")
+            if m5h > best_h[1]:
+                best_h = ((wp, wh, wq), m5h, mah, recs_h, fb_h)
+        (wp, wh, wq), m5h, mah, recs_h, fb_h = best_h
+        log(f"  selected hybrid weights = (PPR {wp}, history {wh}, popularity {wq}); "
+            f"MAP@5 (top-5 target) = {m5h:.6f}")
+        rows_table.append((f"M3_hybrid(PPR_a{best[0]},w={wp}/{wh}/{wq})",
+                           "RRF(k=60) of PPR + personal history + popularity rankings",
+                           m5h, mah, dt, fb_h))
+        H.save_val("hybrid", recs_h, pool, pop)
+        H.log("  out/val_hybrid.csv")
 
     # ------------------------------------------------------------- table
     hr("VALIDATION RESULTS (train 11-20 -> eval 21-30, K=5)")
