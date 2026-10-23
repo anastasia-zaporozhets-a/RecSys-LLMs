@@ -488,12 +488,13 @@ def evaluate(folds, configs, train_users, heldout):
     return chosen, seed_iterations, table
 
 
-def refit_and_predict(folds, final_fold, chosen, configs, iterations):
+def refit_and_predict(folds, final_fold, chosen, configs, iterations,
+                      start_rank=1, manifest_name="step7_final_configs.json"):
     import lightgbm as lgb
     manifest = []
     model_dir = H.OUT / "step7_models"
     model_dir.mkdir(exist_ok=True)
-    for rank, name in enumerate(chosen, 1):
+    for rank, name in enumerate(chosen, start_rank):
         config = configs[name]
         log(f"\nFINAL rank={rank}, recipe={name}: {json.dumps(config, sort_keys=True)}")
         fit_x, fit_y, groups, names = training_queries(folds, config, None)
@@ -522,7 +523,7 @@ def refit_and_predict(folds, final_fold, chosen, configs, iterations):
         log(f"FEATURE IMPORTANCES {filename}\n" + importance.to_string(index=False))
         manifest.append({"file": filename, "recipe": name, "config": config,
                          "seed_iterations": iterations[name], "feature_names": names})
-    (H.OUT / "step7_final_configs.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (H.OUT / manifest_name).write_text(json.dumps(manifest, indent=2) + "\n")
 
 
 def main():

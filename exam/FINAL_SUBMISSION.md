@@ -1,6 +1,15 @@
 # Current designated final submission
 
-**`submission_v5_ltr.csv`** is the designated final so far.
+**`submission_v6_1.csv`** is the designated final so far:
+**public 0.40131 / private 0.38529**, as reported by the user.
+
+This is the Step 7 **new_features_only** recipe: top-50 candidates per source,
+the five additional channel/time/season/recency features, seed **12345**, and
+**150 trees** from early stopping. It uses the original single training fold
+and raw-unit features, then refits on 100% of that fold's users. The submitted
+file uses 11–30 viewing and the 31–42 airing schedule only.
+
+## Previous designated submission: v5_ltr
 
 This is the Step 6 LightGBM LambdaRank model: all-watched binary relevance,
 seed **12345**, **127 trees** selected by early stopping on the user-level
@@ -30,7 +39,10 @@ User-reported scores; screenshots saved by the user.
 
 | Submission | Public | Private |
 |---|---:|---:|
-| v5_ltr — designated final | 0.39205 | 0.37705 |
+| v6_1 — designated final | 0.40131 | 0.38529 |
+| v6_2 | Not reported | Not reported |
+| v6_3 — post-hoc later-fold recipe | Pending build | Pending build |
+| v5_ltr | 0.39205 | 0.37705 |
 | v5_blend | 0.37766 | 0.36082 |
 | v4_1 | 0.35383 | 0.33450 |
 | v4_2 | 0.34898 | 0.32602 |
@@ -66,6 +78,24 @@ are consumed. It preserves a shared user-level holdout across both folds,
 retraining the v5 recipe on training users for an honest baseline comparison.
 The best two distinct recipes are selected by 11–20 -> 21–30 held-out
 all-watched MAP@5, then refitted on 100% of their training queries.
+
+### Additional v6_3: post-hoc later-fold selection
+
+After inspecting the fold5 column, the user chose **all_together** for one
+additional final submission. This was selected using the **later fold5**,
+not the original fold10 criterion. Fold5 is closer in time to the test weeks.
+Its MAP@5 was **0.6401752995066948**, versus **0.6176885130373503** for previous_v5
+(delta **+0.0224867864693445**). Fold10 values were **0.7310917245370371** versus
+**0.7317445023148148**. The fold5 result is not an untouched-holdout estimate
+after making this choice based on that column.
+
+Recipe: size 200 per source, weekly scaling, both stacked folds, new features,
+and raw-score averaging over seeds 12345–12349. The original **fold10
+early-stopping tree counts** remain fixed at **150, 112, 132, 173, 275**.
+`src/step7_refit_all_together.py` rebuilds and persists missing feature caches,
+refits those five models on 100%, and writes `submission_v6_3.csv`. The live
+log (`out/step7_v6_3_refit.log`) explicitly records this post-hoc choice.
+The current designated final remains v6_1 pending further results.
 
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.
