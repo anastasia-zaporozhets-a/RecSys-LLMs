@@ -127,5 +127,19 @@ The same held-out users are excluded from both training folds. The best two
 distinct recipes are refitted on all training queries at the selected tree
 counts, producing `submission_v7_1.csv` and `submission_v7_2.csv`.
 
+## Final file-only rank-average ensemble
+
+`submission_v8_ens.csv` combines v6_3, v7_1 and v7_2 with equal weights:
+`score(item) = sum(1 / (60 + one_based_rank))`. Ties follow v6_3 order;
+items absent from v6_3 sort after present items, with ascending programme ID
+as the final tie-break. Exact rational arithmetic preserves mathematical ties.
+
+**This ensemble was chosen after seeing Kaggle scores.** It trains no model.
+All three input files and the output pass the standard template-order,
+five-distinct-ID and candidate-pool checks. The ensemble recommends 135 distinct
+programmes across 1,260 users; 568 user rankings differ from v6_3.
+The reproducible script is `src/ensemble_final.py`, with input/output hashes
+and checks recorded in `out/ensemble_final.md`.
+
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.
