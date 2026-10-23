@@ -1,0 +1,76 @@
+{
+  "file": "submission_v6_3.csv",
+  "recipe": "all_together",
+  "config": {
+    "size": 200,
+    "scale": true,
+    "stack": true,
+    "new": true,
+    "seeds": [
+      12345,
+      12346,
+      12347,
+      12348,
+      12349
+    ]
+  },
+  "seed_iterations": {
+    "12345": 150,
+    "12346": 112,
+    "12347": 132,
+    "12348": 173,
+    "12349": 275
+  },
+  "selection_metric": "later fold5 all-watched MAP@5",
+  "selection_is_post_hoc": true,
+  "selection_note": "Chosen by the user after seeing the fold5 column, not by fold10; fold5 is consequently not an untouched holdout for this selection.",
+  "selection_rationale": "Later fold5 (26-30) is closer in time to the test weeks 31-42.",
+  "tree_count_source": "Saved Step 7 fold10 NDCG@5 early stopping; not retuned on fold5",
+  "fold5_all_together": 0.6401752995066948,
+  "fold5_previous_v5": 0.6176885130373503,
+  "fold5_delta": 0.022486786469344544,
+  "fold10_all_together": 0.7310917245370371,
+  "fold10_previous_v5": 0.7317445023148148,
+  "designated_final_so_far": "submission_v6_1.csv",
+  "feature_cache": "/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7",
+  "source_fingerprint": {
+    "version": 1,
+    "inputs": {
+      "data/dataset11-30.csv": {
+        "bytes": 396216555,
+        "mtime_ns": 1792659580600052667
+      },
+      "data/submission.csv": {
+        "bytes": 38348,
+        "mtime_ns": 1792659581866020583
+      },
+      "out/interactions.csv": {
+        "bytes": 40877059,
+        "mtime_ns": 1792660497510995557
+      },
+      "out/programmes.csv": {
+        "bytes": 1036479,
+        "mtime_ns": 1792660500467451628
+      },
+      "data/export_arh_11-20-final.csv": {
+        "bytes": 153322643,
+        "mtime_ns": 1792659580891309412
+      },
+      "data/export_arh_21-30-final.csv": {
+        "bytes": 154366907,
+        "mtime_ns": 1792659581226280733
+      },
+      "data/export_arh_31-42-final.csv": {
+        "bytes": 185952991,
+        "mtime_ns": 1792659581864935093
+      }
+    },
+    "feature_code_sha256": {
+      "harness.py": "fb5483dcd63286f7ba71e7bd478969225b4e867aa28253c41b105dff329e7a89",
+      "step5_exposure.py": "1e6d4a7d998bcde7675c8b9ace9ae63a2d076e886f8f0ee2862b80a2f5abbecb",
+      "step6_ltr.py": "420bf0fb6e8f4ec3a1f4d49e15ebd4426d9001615e300c9340cd7444d051c8dc",
+      "step7_ltr_plus.py": "ab409ef9d9300d586e36a6a07738d6e61e1db2bc0672bff553b537290b28b143",
+      "step7_feature_cache.py": "f2e635ea8e211afaa527f639322d1373426b6ad0eb764c297b75177e5d5b1b79"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+
+====================================================================================================
+M2 CONTENT-BASED (VECTORIZED)
+====================================================================================================
+Load data...
+pool 6363
+Building features...
+Computing user profiles U = W @ X_all_norm...
+M2 alone...
+  chunk 1 (500 users), elapsed 0.0s
+  chunk 2 (500 users), elapsed 0.3s
+  chunk 3 (500 users), elapsed 0.7s
+  chunk 4 (500 users), elapsed 1.0s
+  chunk 5 (500 users), elapsed 1.4s
+  chunk 6 (500 users), elapsed 1.7s
+  chunk 7 (500 users), elapsed 2.1s
+  chunk 8 (500 users), elapsed 2.4s
+  chunk 9 (500 users), elapsed 2.7s
+  chunk 10 (243 users), elapsed 3.1s
+  done scoring in 3.3s
+M2 alone: top5 0.051774 all 0.138586 fb 56
+M2 + history tie-breaker...
+  chunk 1 (500 users), elapsed 0.0s
+  chunk 2 (500 users), elapsed 0.5s
+  chunk 3 (500 users), elapsed 1.0s
+  chunk 4 (500 users), elapsed 1.5s
+  chunk 5 (500 users), elapsed 2.0s
+  chunk 6 (500 users), elapsed 2.5s
+  chunk 7 (500 users), elapsed 3.0s
+  chunk 8 (500 users), elapsed 3.5s
+  chunk 9 (500 users), elapsed 4.0s
+  chunk 10 (243 users), elapsed 4.5s
+  done scoring in 4.7s
+M2+tie: top5 0.058244 all 0.143336 fb 56
+wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/val_content_based_vec.csv
+wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/val_content_based_vec_hist_tiebreak.csv
+
+====================================================================================================
+SUMMARY
+====================================================================================================
+M2_content_vec: top5 0.051774 all 0.138586
+M2_content_vec+hist_tiebreak: top5 0.058244 all 0.143336

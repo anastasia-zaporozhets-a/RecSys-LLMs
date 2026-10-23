@@ -3,6 +3,12 @@
 **`submission_v6_3.csv`** is the designated final so far:
 **public 0.41907 / private 0.40253**, as reported by the user.
 
+The final comparison retains v6_3: v8_ens scored **public 0.41669 / private
+0.39991**, v7_1 **0.41615 / 0.40078**, and v7_2 **0.41519 / 0.39924**.
+None beat v6_3. The complete chronological submission table and documented
+submission count are in `out/final_summary.md`; the three-user comparisons
+are in `out/examples_final.md`.
+
 This is the Step 7 **all_together** recipe: size 200 per source, weekly-scaled
 features, both stacked folds, the new channel/time/season/recency features,
 and raw-score averaging over seeds 12345–12349. The saved tree counts were
@@ -52,13 +58,16 @@ User-reported scores; screenshots saved by the user.
 | Submission | Public | Private |
 |---|---:|---:|
 | v6_3 — designated final | 0.41907 | 0.40253 |
+| v7_1 | 0.41615 | 0.40078 |
+| v8_ens | 0.41669 | 0.39991 |
+| v7_2 | 0.41519 | 0.39924 |
 | v6_1 | 0.40131 | 0.38529 |
 | v6_2 | Not reported | Not reported |
 | v5_ltr | 0.39205 | 0.37705 |
 | v5_blend | 0.37766 | 0.36082 |
 | v4_1 | 0.35383 | 0.33450 |
 | v4_2 | 0.34898 | 0.32602 |
-| v4_3 | Not submitted | Not submitted |
+| v4_3 | Not reported | Not reported |
 | v3_1 | 0.33173 | 0.31829 |
 | v3_2 | 0.32686 | 0.31413 |
 | v3_3 | 0.32539 | 0.31550 |
@@ -127,6 +136,9 @@ The same held-out users are excluded from both training folds. The best two
 distinct recipes are refitted on all training queries at the selected tree
 counts, producing `submission_v7_1.csv` and `submission_v7_2.csv`.
 
+Both files improved validation by approximately 0.0035 but scored below v6_3
+on Kaggle. The designated final therefore remains `submission_v6_3.csv`.
+
 ## Final file-only rank-average ensemble
 
 `submission_v8_ens.csv` combines v6_3, v7_1 and v7_2 with equal weights:
@@ -140,6 +152,7 @@ five-distinct-ID and candidate-pool checks. The ensemble recommends 135 distinct
 programmes across 1,260 users; 568 user rankings differ from v6_3.
 The reproducible script is `src/ensemble_final.py`, with input/output hashes
 and checks recorded in `out/ensemble_final.md`.
+Its Kaggle result was **public 0.41669 / private 0.39991**, also below v6_3.
 
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.

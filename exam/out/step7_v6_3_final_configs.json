@@ -1,0 +1,57 @@
+[
+  {
+    "file": "submission_v6_3.csv",
+    "recipe": "all_together",
+    "config": {
+      "size": 200,
+      "scale": true,
+      "stack": true,
+      "new": true,
+      "seeds": [
+        12345,
+        12346,
+        12347,
+        12348,
+        12349
+      ]
+    },
+    "seed_iterations": {
+      "12345": 150,
+      "12346": 112,
+      "12347": 132,
+      "12348": 173,
+      "12349": 275
+    },
+    "feature_names": [
+      "user_item_seconds_per_week",
+      "user_item_airings_per_week",
+      "user_item_days_per_week",
+      "last4weeks_seconds_per_week",
+      "ppr_score",
+      "ppr_rank",
+      "exposure_score_per_target_week",
+      "exposure_rank",
+      "popularity_users_per_week",
+      "global_item_seconds_per_week",
+      "target_airtime_per_week",
+      "target_airings_per_week",
+      "airtime_ratio_weekly",
+      "user_category_share",
+      "is_new_for_user",
+      "category_0",
+      "category_1",
+      "category_2",
+      "category_3",
+      "category_4",
+      "category_5",
+      "category_6",
+      "category_7",
+      "category_8",
+      "user_item_channel_share",
+      "E168_recent_per_target_week",
+      "airs_first_two_weeks",
+      "target_week_coverage",
+      "last2weeks_item_seconds_per_week"
+    ]
+  }
+]

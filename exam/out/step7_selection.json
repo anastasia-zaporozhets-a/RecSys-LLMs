@@ -1,0 +1,114 @@
+{
+  "candidate_size": 200,
+  "recall_ceiling": "200/source on training users in both folds",
+  "selection_metric": "heldout all-watched MAP@5 on fold10 only",
+  "chosen": [
+    "new_features_only",
+    "candidates_only"
+  ],
+  "recipes": {
+    "previous_v5": {
+      "size": 50,
+      "scale": false,
+      "stack": false,
+      "new": false,
+      "seeds": [
+        12345
+      ]
+    },
+    "candidates_only": {
+      "size": 200,
+      "scale": false,
+      "stack": false,
+      "new": false,
+      "seeds": [
+        12345
+      ]
+    },
+    "weekly_scaling_only": {
+      "size": 50,
+      "scale": true,
+      "stack": false,
+      "new": false,
+      "seeds": [
+        12345
+      ]
+    },
+    "stacked_folds_only": {
+      "size": 50,
+      "scale": false,
+      "stack": true,
+      "new": false,
+      "seeds": [
+        12345
+      ]
+    },
+    "new_features_only": {
+      "size": 50,
+      "scale": false,
+      "stack": false,
+      "new": true,
+      "seeds": [
+        12345
+      ]
+    },
+    "five_seed_bagging_only": {
+      "size": 50,
+      "scale": false,
+      "stack": false,
+      "new": false,
+      "seeds": [
+        12345,
+        12346,
+        12347,
+        12348,
+        12349
+      ]
+    },
+    "all_together": {
+      "size": 200,
+      "scale": true,
+      "stack": true,
+      "new": true,
+      "seeds": [
+        12345,
+        12346,
+        12347,
+        12348,
+        12349
+      ]
+    }
+  },
+  "iterations": {
+    "previous_v5": {
+      "12345": 127
+    },
+    "candidates_only": {
+      "12345": 163
+    },
+    "weekly_scaling_only": {
+      "12345": 117
+    },
+    "stacked_folds_only": {
+      "12345": 154
+    },
+    "new_features_only": {
+      "12345": 150
+    },
+    "five_seed_bagging_only": {
+      "12345": 127,
+      "12346": 121,
+      "12347": 160,
+      "12348": 112,
+      "12349": 251
+    },
+    "all_together": {
+      "12345": 150,
+      "12346": 112,
+      "12347": 132,
+      "12348": 173,
+      "12349": 275
+    }
+  },
+  "designated_final_so_far": "submission_v5_ltr.csv"
+}

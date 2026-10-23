@@ -1,0 +1,2058 @@
+Step 8: graded labels/exposure additions/LightGBM grid from cached v6_3.
+
+Run from exam/: .venv/bin/python -u src/step8_ltr_graded.py
+Prints progress and logs live to out/step8_stdout.log. Five seeds 12345..12349
+for EVERY evaluated recipe. Fixed size-200 candidates, weekly scaling, stacked
+folds and v6_3's existing new features. Never use viewing from weeks 31-42.
+
+PREDECLARED SELECTION: unweighted MEAN of fold10 and fold5 holdout all-watched
+MAP@5, used both for early stopping and for choosing recipes. The same held-out
+users are excluded from both training folds. Graded labels change the ranking
+objective; evaluation always uses binary all-watched ground truth. This is a
+validation-selection experiment, not an untouched test estimate.
+
+Staged, bounded search (not an exhaustive Cartesian product):
+  1. Binary baseline; airings/day quartiles separately; each new exposure group
+     separately; all new exposures. Channel share is an already-present control.
+  2. Eight hyperparameter settings on the binary baseline (one factor: grid).
+  3. Pick the best label and exposure setting from stage 1, then test their
+     combination with ALL eight grid settings; report the best combination.
+The best two distinct configurations across all stages are selected by mean
+MAP@5 and refitted on 100% at their per-seed early-stopped tree counts.
+
+Grid: leaves 31/63, rate .05/.1, min child 20/50. Baseline preserves min child 30.
+LambdaRank, eval_at=5, max 1000 trees, 50-round early stopping on mean-fold MAP.
+The saved Step 7 v6_3 scores are printed as historical reference only: its old
+tree counts were chosen on fold10 NDCG, whereas all Step 8 fits stop on mean MAP.
+
+Step 7 caches are immutable. New features/labels and completed per-seed holdout
+fits are cached under out/cache/step8 for reuse/resumption. New time exposures
+require one additional raw TRAINING-only log pass; no PPR/candidate rebuild.
+Writes out/step8_* tables, models, config/importance reports and final files
+submission_v7_1.csv and submission_v7_2.csv. Current final remains v6_3.
+
+LightGBM 4.7.0; all scores/selections use the predeclared equal-weight mean-fold rule
+Historical v6_3 reference (original fold10-NDCG tree counts): fold10=0.73109172, fold5=0.64017530, mean=0.68563351
+CATEGORY ONE-HOT MAPPING: {"0": "__missing__", "1": "Детям", "2": "Другое", "3": "Инфо", "4": "Познавательное", "5": "Развлечения", "6": "Сериалы", "7": "Спорт", "8": "Фильмы"}
+  reused fold10: 1,856,655 cached candidates, 29 base features
+  reused fold5: 1,829,523 cached candidates, 29 base features
+  reused final: 521,642 cached candidates, 29 base features
+  schedule 21-30: 121,238 distinct labelled broadcasts, clipped to [2020-05-18, 2020-07-27)
+  schedule 31-42: 144,517 distinct labelled broadcasts, clipped to [2020-07-27, 2020-10-19)
+  decay-habit chunk 1: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 2: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 3: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 4: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 5: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 6: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 7: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 8: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 9: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 10: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 11: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 12: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 13: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 14: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 15: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 16: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 17: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 18: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 19: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 20: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 21: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 22: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 23: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 24: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 25: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 26: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 27: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 28: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 29: 200,000 raw views, separately clipped to each feature window
+  decay-habit chunk 30: 21,987 raw views, separately clipped to each feature window
+  fold10 decay4: normalization 4.749588 effective weighted weeks
+  fold10 decay8: normalization 6.686429 effective weighted weeks
+  fold5 decay4: normalization 5.341422 effective weighted weeks
+  fold5 decay8: normalization 8.393397 effective weighted weeks
+  final decay4: normalization 5.590257 effective weighted weeks
+  final decay8: normalization 9.500229 effective weighted weeks
+  fold10 new exposures: users 1-250
+  fold10 new exposures: users 251-500
+  fold10 new exposures: users 501-750
+  fold10 new exposures: users 751-1,000
+  fold10 new exposures: users 1,001-1,250
+  fold10 new exposures: users 1,251-1,500
+  fold10 new exposures: users 1,501-1,750
+  fold10 new exposures: users 1,751-2,000
+  fold10 new exposures: users 2,001-2,250
+  fold10 new exposures: users 2,251-2,500
+  fold10 new exposures: users 2,501-2,750
+  fold10 new exposures: users 2,751-3,000
+  fold10 new exposures: users 3,001-3,250
+  fold10 new exposures: users 3,251-3,500
+  fold10 new exposures: users 3,501-3,750
+  fold10 new exposures: users 3,751-4,000
+  fold10 new exposures: users 4,001-4,250
+  fold10 new exposures: users 4,251-4,500
+  fold10 new exposures: users 4,501-4,750
+  fold10 new exposures: users 4,751-4,799
+  fold5 new exposures: users 1-250
+  fold5 new exposures: users 251-500
+  fold5 new exposures: users 501-750
+  fold5 new exposures: users 751-1,000
+  fold5 new exposures: users 1,001-1,250
+  fold5 new exposures: users 1,251-1,500
+  fold5 new exposures: users 1,501-1,750
+  fold5 new exposures: users 1,751-2,000
+  fold5 new exposures: users 2,001-2,250
+  fold5 new exposures: users 2,251-2,500
+  fold5 new exposures: users 2,501-2,750
+  fold5 new exposures: users 2,751-3,000
+  fold5 new exposures: users 3,001-3,250
+  fold5 new exposures: users 3,251-3,500
+  fold5 new exposures: users 3,501-3,750
+  fold5 new exposures: users 3,751-4,000
+  fold5 new exposures: users 4,001-4,250
+  fold5 new exposures: users 4,251-4,500
+  fold5 new exposures: users 4,501-4,735
+  final new exposures: users 1-250
+  final new exposures: users 251-500
+  final new exposures: users 501-750
+  final new exposures: users 751-1,000
+  final new exposures: users 1,001-1,250
+  final new exposures: users 1,251-1,260
+  fold10: quartiles use all true watched items; 0 watched items lack positive clipped count data (retained in the lowest positive grade)
+  saved Step 8 additions: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step8/features/fold10
+  fold5: quartiles use all true watched items; 0 watched items lack positive clipped count data (retained in the lowest positive grade)
+  saved Step 8 additions: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step8/features/fold5
+  saved Step 8 additions: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step8/features/final
+Fixed user split: 3,839 training / 960 heldout; no heldout user fitted in either fold
+
+FIT binary_baseline: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668261
+[50]	valid_0's mean_fold_map5: 0.676406
+[75]	valid_0's mean_fold_map5: 0.682874
+[100]	valid_0's mean_fold_map5: 0.684546
+[125]	valid_0's mean_fold_map5: 0.68606
+[150]	valid_0's mean_fold_map5: 0.686587
+[175]	valid_0's mean_fold_map5: 0.685944
+[200]	valid_0's mean_fold_map5: 0.686279
+Early stopping, best iteration is:
+[150]	valid_0's mean_fold_map5: 0.686587
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667831
+[50]	valid_0's mean_fold_map5: 0.675983
+[75]	valid_0's mean_fold_map5: 0.680684
+[100]	valid_0's mean_fold_map5: 0.68533
+[125]	valid_0's mean_fold_map5: 0.686139
+[150]	valid_0's mean_fold_map5: 0.685943
+[175]	valid_0's mean_fold_map5: 0.686086
+Early stopping, best iteration is:
+[126]	valid_0's mean_fold_map5: 0.686685
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670175
+[50]	valid_0's mean_fold_map5: 0.676299
+[75]	valid_0's mean_fold_map5: 0.683708
+[100]	valid_0's mean_fold_map5: 0.684199
+[125]	valid_0's mean_fold_map5: 0.685775
+[150]	valid_0's mean_fold_map5: 0.685192
+[175]	valid_0's mean_fold_map5: 0.685525
+Early stopping, best iteration is:
+[130]	valid_0's mean_fold_map5: 0.686838
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671273
+[50]	valid_0's mean_fold_map5: 0.676161
+[75]	valid_0's mean_fold_map5: 0.681534
+[100]	valid_0's mean_fold_map5: 0.684171
+[125]	valid_0's mean_fold_map5: 0.685809
+[150]	valid_0's mean_fold_map5: 0.685478
+[175]	valid_0's mean_fold_map5: 0.686277
+[200]	valid_0's mean_fold_map5: 0.685963
+Early stopping, best iteration is:
+[173]	valid_0's mean_fold_map5: 0.686448
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669563
+[50]	valid_0's mean_fold_map5: 0.674662
+[75]	valid_0's mean_fold_map5: 0.681645
+[100]	valid_0's mean_fold_map5: 0.684161
+[125]	valid_0's mean_fold_map5: 0.685136
+[150]	valid_0's mean_fold_map5: 0.684974
+[175]	valid_0's mean_fold_map5: 0.685354
+[200]	valid_0's mean_fold_map5: 0.686055
+[225]	valid_0's mean_fold_map5: 0.686818
+[250]	valid_0's mean_fold_map5: 0.686278
+[275]	valid_0's mean_fold_map5: 0.68669
+Early stopping, best iteration is:
+[228]	valid_0's mean_fold_map5: 0.686818
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "66d3b74182f93d569102", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7315118634259259, "map_fold5": 0.6402352008456659, "mean_map": 0.6858735321357958, "min_child_samples": 30, "name": "binary_baseline", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT graded_airings_only: {"candidate_size": 200, "extras": [], "label": "airings", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.66869
+[50]	valid_0's mean_fold_map5: 0.674352
+[75]	valid_0's mean_fold_map5: 0.677557
+[100]	valid_0's mean_fold_map5: 0.679149
+[125]	valid_0's mean_fold_map5: 0.680425
+[150]	valid_0's mean_fold_map5: 0.681399
+[175]	valid_0's mean_fold_map5: 0.682229
+[200]	valid_0's mean_fold_map5: 0.681795
+[225]	valid_0's mean_fold_map5: 0.682046
+Early stopping, best iteration is:
+[177]	valid_0's mean_fold_map5: 0.682368
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.666851
+[50]	valid_0's mean_fold_map5: 0.672985
+[75]	valid_0's mean_fold_map5: 0.677388
+[100]	valid_0's mean_fold_map5: 0.679494
+[125]	valid_0's mean_fold_map5: 0.681203
+[150]	valid_0's mean_fold_map5: 0.682738
+[175]	valid_0's mean_fold_map5: 0.682502
+[200]	valid_0's mean_fold_map5: 0.682288
+[225]	valid_0's mean_fold_map5: 0.68134
+Early stopping, best iteration is:
+[182]	valid_0's mean_fold_map5: 0.683118
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669373
+[50]	valid_0's mean_fold_map5: 0.674462
+[75]	valid_0's mean_fold_map5: 0.677033
+[100]	valid_0's mean_fold_map5: 0.67918
+[125]	valid_0's mean_fold_map5: 0.681762
+[150]	valid_0's mean_fold_map5: 0.682583
+[175]	valid_0's mean_fold_map5: 0.683067
+[200]	valid_0's mean_fold_map5: 0.682983
+Early stopping, best iteration is:
+[157]	valid_0's mean_fold_map5: 0.683512
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667048
+[50]	valid_0's mean_fold_map5: 0.673966
+[75]	valid_0's mean_fold_map5: 0.675627
+[100]	valid_0's mean_fold_map5: 0.679691
+[125]	valid_0's mean_fold_map5: 0.680792
+[150]	valid_0's mean_fold_map5: 0.68267
+[175]	valid_0's mean_fold_map5: 0.681909
+[200]	valid_0's mean_fold_map5: 0.681826
+Early stopping, best iteration is:
+[165]	valid_0's mean_fold_map5: 0.683023
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.66628
+[50]	valid_0's mean_fold_map5: 0.673288
+[75]	valid_0's mean_fold_map5: 0.676852
+[100]	valid_0's mean_fold_map5: 0.679712
+[125]	valid_0's mean_fold_map5: 0.681256
+[150]	valid_0's mean_fold_map5: 0.682041
+[175]	valid_0's mean_fold_map5: 0.682065
+Early stopping, best iteration is:
+[137]	valid_0's mean_fold_map5: 0.682738
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "d6289375a13ee302c0ed", "label": "airings", "learning_rate": 0.05, "map_fold10": 0.7284791666666667, "map_fold5": 0.6387165257223397, "mean_map": 0.6835978461945031, "min_child_samples": 30, "name": "graded_airings_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT graded_days_only: {"candidate_size": 200, "extras": [], "label": "days", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.665493
+[50]	valid_0's mean_fold_map5: 0.672763
+[75]	valid_0's mean_fold_map5: 0.675388
+[100]	valid_0's mean_fold_map5: 0.67854
+[125]	valid_0's mean_fold_map5: 0.679914
+[150]	valid_0's mean_fold_map5: 0.682274
+[175]	valid_0's mean_fold_map5: 0.683093
+[200]	valid_0's mean_fold_map5: 0.683669
+[225]	valid_0's mean_fold_map5: 0.684487
+[250]	valid_0's mean_fold_map5: 0.6842
+Early stopping, best iteration is:
+[219]	valid_0's mean_fold_map5: 0.68465
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.664475
+[50]	valid_0's mean_fold_map5: 0.6733
+[75]	valid_0's mean_fold_map5: 0.677545
+[100]	valid_0's mean_fold_map5: 0.68026
+[125]	valid_0's mean_fold_map5: 0.682115
+[150]	valid_0's mean_fold_map5: 0.68277
+[175]	valid_0's mean_fold_map5: 0.683632
+[200]	valid_0's mean_fold_map5: 0.683616
+[225]	valid_0's mean_fold_map5: 0.683952
+[250]	valid_0's mean_fold_map5: 0.683587
+Early stopping, best iteration is:
+[211]	valid_0's mean_fold_map5: 0.684581
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667429
+[50]	valid_0's mean_fold_map5: 0.673071
+[75]	valid_0's mean_fold_map5: 0.677283
+[100]	valid_0's mean_fold_map5: 0.678981
+[125]	valid_0's mean_fold_map5: 0.680737
+[150]	valid_0's mean_fold_map5: 0.682624
+[175]	valid_0's mean_fold_map5: 0.683169
+[200]	valid_0's mean_fold_map5: 0.683581
+[225]	valid_0's mean_fold_map5: 0.68325
+[250]	valid_0's mean_fold_map5: 0.683231
+Early stopping, best iteration is:
+[205]	valid_0's mean_fold_map5: 0.683822
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.666914
+[50]	valid_0's mean_fold_map5: 0.67243
+[75]	valid_0's mean_fold_map5: 0.677162
+[100]	valid_0's mean_fold_map5: 0.680386
+[125]	valid_0's mean_fold_map5: 0.680792
+[150]	valid_0's mean_fold_map5: 0.68343
+[175]	valid_0's mean_fold_map5: 0.683657
+[200]	valid_0's mean_fold_map5: 0.683402
+[225]	valid_0's mean_fold_map5: 0.683468
+Early stopping, best iteration is:
+[180]	valid_0's mean_fold_map5: 0.684138
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.666487
+[50]	valid_0's mean_fold_map5: 0.673601
+[75]	valid_0's mean_fold_map5: 0.676787
+[100]	valid_0's mean_fold_map5: 0.679593
+[125]	valid_0's mean_fold_map5: 0.681859
+[150]	valid_0's mean_fold_map5: 0.683368
+[175]	valid_0's mean_fold_map5: 0.683764
+[200]	valid_0's mean_fold_map5: 0.684187
+Early stopping, best iteration is:
+[160]	valid_0's mean_fold_map5: 0.684611
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "5839137b7727ce625151", "label": "days", "learning_rate": 0.05, "map_fold10": 0.7293194444444445, "map_fold5": 0.6393992248062016, "mean_map": 0.6843593346253231, "min_child_samples": 30, "name": "graded_days_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT decay4_only: {"candidate_size": 200, "extras": ["decay4"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670436
+[50]	valid_0's mean_fold_map5: 0.676393
+[75]	valid_0's mean_fold_map5: 0.681121
+[100]	valid_0's mean_fold_map5: 0.685546
+[125]	valid_0's mean_fold_map5: 0.68622
+[150]	valid_0's mean_fold_map5: 0.685969
+[175]	valid_0's mean_fold_map5: 0.686062
+Early stopping, best iteration is:
+[130]	valid_0's mean_fold_map5: 0.686879
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669286
+[50]	valid_0's mean_fold_map5: 0.678316
+[75]	valid_0's mean_fold_map5: 0.684133
+[100]	valid_0's mean_fold_map5: 0.685149
+[125]	valid_0's mean_fold_map5: 0.686291
+[150]	valid_0's mean_fold_map5: 0.685835
+[175]	valid_0's mean_fold_map5: 0.686549
+[200]	valid_0's mean_fold_map5: 0.687023
+[225]	valid_0's mean_fold_map5: 0.686717
+[250]	valid_0's mean_fold_map5: 0.686904
+Early stopping, best iteration is:
+[202]	valid_0's mean_fold_map5: 0.68742
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668465
+[50]	valid_0's mean_fold_map5: 0.676702
+[75]	valid_0's mean_fold_map5: 0.680825
+[100]	valid_0's mean_fold_map5: 0.684112
+[125]	valid_0's mean_fold_map5: 0.684863
+[150]	valid_0's mean_fold_map5: 0.685868
+[175]	valid_0's mean_fold_map5: 0.685621
+[200]	valid_0's mean_fold_map5: 0.684886
+Early stopping, best iteration is:
+[155]	valid_0's mean_fold_map5: 0.686129
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669498
+[50]	valid_0's mean_fold_map5: 0.676843
+[75]	valid_0's mean_fold_map5: 0.681515
+[100]	valid_0's mean_fold_map5: 0.683088
+[125]	valid_0's mean_fold_map5: 0.684201
+[150]	valid_0's mean_fold_map5: 0.684958
+[175]	valid_0's mean_fold_map5: 0.684487
+Early stopping, best iteration is:
+[140]	valid_0's mean_fold_map5: 0.685708
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670777
+[50]	valid_0's mean_fold_map5: 0.676776
+[75]	valid_0's mean_fold_map5: 0.682476
+[100]	valid_0's mean_fold_map5: 0.685492
+[125]	valid_0's mean_fold_map5: 0.687173
+[150]	valid_0's mean_fold_map5: 0.687363
+[175]	valid_0's mean_fold_map5: 0.687524
+Early stopping, best iteration is:
+[135]	valid_0's mean_fold_map5: 0.688098
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "decay4", "id": "cbc95921c590d4c948ca", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7321241319444444, "map_fold5": 0.6417019027484143, "mean_map": 0.6869130173464293, "min_child_samples": 30, "name": "decay4_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT decay8_only: {"candidate_size": 200, "extras": ["decay8"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669586
+[50]	valid_0's mean_fold_map5: 0.675386
+[75]	valid_0's mean_fold_map5: 0.681875
+[100]	valid_0's mean_fold_map5: 0.683092
+[125]	valid_0's mean_fold_map5: 0.685849
+[150]	valid_0's mean_fold_map5: 0.685229
+[175]	valid_0's mean_fold_map5: 0.686767
+[200]	valid_0's mean_fold_map5: 0.687128
+[225]	valid_0's mean_fold_map5: 0.687418
+[250]	valid_0's mean_fold_map5: 0.687285
+[275]	valid_0's mean_fold_map5: 0.688037
+[300]	valid_0's mean_fold_map5: 0.687416
+[325]	valid_0's mean_fold_map5: 0.687178
+Early stopping, best iteration is:
+[288]	valid_0's mean_fold_map5: 0.688222
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668088
+[50]	valid_0's mean_fold_map5: 0.676085
+[75]	valid_0's mean_fold_map5: 0.681812
+[100]	valid_0's mean_fold_map5: 0.683038
+[125]	valid_0's mean_fold_map5: 0.684669
+[150]	valid_0's mean_fold_map5: 0.685583
+[175]	valid_0's mean_fold_map5: 0.685613
+[200]	valid_0's mean_fold_map5: 0.685407
+Early stopping, best iteration is:
+[163]	valid_0's mean_fold_map5: 0.686332
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668778
+[50]	valid_0's mean_fold_map5: 0.675715
+[75]	valid_0's mean_fold_map5: 0.681052
+[100]	valid_0's mean_fold_map5: 0.683135
+[125]	valid_0's mean_fold_map5: 0.684598
+[150]	valid_0's mean_fold_map5: 0.685373
+[175]	valid_0's mean_fold_map5: 0.685809
+[200]	valid_0's mean_fold_map5: 0.686919
+[225]	valid_0's mean_fold_map5: 0.686835
+[250]	valid_0's mean_fold_map5: 0.687026
+[275]	valid_0's mean_fold_map5: 0.686988
+[300]	valid_0's mean_fold_map5: 0.687454
+[325]	valid_0's mean_fold_map5: 0.687018
+[350]	valid_0's mean_fold_map5: 0.687148
+Early stopping, best iteration is:
+[309]	valid_0's mean_fold_map5: 0.68759
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669265
+[50]	valid_0's mean_fold_map5: 0.6757
+[75]	valid_0's mean_fold_map5: 0.68057
+[100]	valid_0's mean_fold_map5: 0.684408
+[125]	valid_0's mean_fold_map5: 0.684941
+[150]	valid_0's mean_fold_map5: 0.685074
+[175]	valid_0's mean_fold_map5: 0.685818
+[200]	valid_0's mean_fold_map5: 0.686247
+[225]	valid_0's mean_fold_map5: 0.686022
+[250]	valid_0's mean_fold_map5: 0.685973
+Early stopping, best iteration is:
+[218]	valid_0's mean_fold_map5: 0.686517
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671582
+[50]	valid_0's mean_fold_map5: 0.676635
+[75]	valid_0's mean_fold_map5: 0.682006
+[100]	valid_0's mean_fold_map5: 0.683486
+[125]	valid_0's mean_fold_map5: 0.685142
+[150]	valid_0's mean_fold_map5: 0.685373
+[175]	valid_0's mean_fold_map5: 0.685805
+[200]	valid_0's mean_fold_map5: 0.685647
+Early stopping, best iteration is:
+[160]	valid_0's mean_fold_map5: 0.685996
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "decay8", "id": "b21943d768954658d725", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.732880787037037, "map_fold5": 0.6411768851303734, "mean_map": 0.6870288360837051, "min_child_samples": 30, "name": "decay8_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT halves_only: {"candidate_size": 200, "extras": ["halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=31
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670866
+[50]	valid_0's mean_fold_map5: 0.675862
+[75]	valid_0's mean_fold_map5: 0.682888
+[100]	valid_0's mean_fold_map5: 0.683941
+[125]	valid_0's mean_fold_map5: 0.686302
+[150]	valid_0's mean_fold_map5: 0.686141
+[175]	valid_0's mean_fold_map5: 0.687282
+[200]	valid_0's mean_fold_map5: 0.686805
+Early stopping, best iteration is:
+[162]	valid_0's mean_fold_map5: 0.6875
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=31
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670434
+[50]	valid_0's mean_fold_map5: 0.676013
+[75]	valid_0's mean_fold_map5: 0.682524
+[100]	valid_0's mean_fold_map5: 0.684653
+[125]	valid_0's mean_fold_map5: 0.685596
+[150]	valid_0's mean_fold_map5: 0.686032
+[175]	valid_0's mean_fold_map5: 0.686762
+[200]	valid_0's mean_fold_map5: 0.686504
+[225]	valid_0's mean_fold_map5: 0.686124
+Early stopping, best iteration is:
+[180]	valid_0's mean_fold_map5: 0.686966
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=31
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667238
+[50]	valid_0's mean_fold_map5: 0.675502
+[75]	valid_0's mean_fold_map5: 0.68138
+[100]	valid_0's mean_fold_map5: 0.684626
+[125]	valid_0's mean_fold_map5: 0.686481
+[150]	valid_0's mean_fold_map5: 0.686691
+[175]	valid_0's mean_fold_map5: 0.687111
+[200]	valid_0's mean_fold_map5: 0.686406
+[225]	valid_0's mean_fold_map5: 0.685962
+Early stopping, best iteration is:
+[179]	valid_0's mean_fold_map5: 0.687478
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=31
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669064
+[50]	valid_0's mean_fold_map5: 0.675508
+[75]	valid_0's mean_fold_map5: 0.681306
+[100]	valid_0's mean_fold_map5: 0.68408
+[125]	valid_0's mean_fold_map5: 0.68589
+[150]	valid_0's mean_fold_map5: 0.686709
+[175]	valid_0's mean_fold_map5: 0.686924
+Early stopping, best iteration is:
+[147]	valid_0's mean_fold_map5: 0.687514
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=31
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668669
+[50]	valid_0's mean_fold_map5: 0.675417
+[75]	valid_0's mean_fold_map5: 0.682942
+[100]	valid_0's mean_fold_map5: 0.685153
+[125]	valid_0's mean_fold_map5: 0.686085
+[150]	valid_0's mean_fold_map5: 0.686758
+[175]	valid_0's mean_fold_map5: 0.68658
+Early stopping, best iteration is:
+[139]	valid_0's mean_fold_map5: 0.687526
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "halves", "id": "0ca7dabf22a6f79c7a0e", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7329780092592593, "map_fold5": 0.642797744890768, "mean_map": 0.6878878770750136, "min_child_samples": 30, "name": "halves_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT candidate_rank_only: {"candidate_size": 200, "extras": ["candidate_rank"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670419
+[50]	valid_0's mean_fold_map5: 0.675622
+[75]	valid_0's mean_fold_map5: 0.682526
+[100]	valid_0's mean_fold_map5: 0.684251
+[125]	valid_0's mean_fold_map5: 0.684067
+[150]	valid_0's mean_fold_map5: 0.685414
+[175]	valid_0's mean_fold_map5: 0.685932
+[200]	valid_0's mean_fold_map5: 0.685474
+[225]	valid_0's mean_fold_map5: 0.6856
+Early stopping, best iteration is:
+[188]	valid_0's mean_fold_map5: 0.686283
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669701
+[50]	valid_0's mean_fold_map5: 0.676922
+[75]	valid_0's mean_fold_map5: 0.683195
+[100]	valid_0's mean_fold_map5: 0.683703
+[125]	valid_0's mean_fold_map5: 0.685043
+[150]	valid_0's mean_fold_map5: 0.684804
+Early stopping, best iteration is:
+[123]	valid_0's mean_fold_map5: 0.685274
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670019
+[50]	valid_0's mean_fold_map5: 0.675467
+[75]	valid_0's mean_fold_map5: 0.681612
+[100]	valid_0's mean_fold_map5: 0.68291
+[125]	valid_0's mean_fold_map5: 0.684128
+[150]	valid_0's mean_fold_map5: 0.684524
+[175]	valid_0's mean_fold_map5: 0.68553
+[200]	valid_0's mean_fold_map5: 0.685348
+[225]	valid_0's mean_fold_map5: 0.685664
+[250]	valid_0's mean_fold_map5: 0.686054
+[275]	valid_0's mean_fold_map5: 0.685757
+[300]	valid_0's mean_fold_map5: 0.685344
+[325]	valid_0's mean_fold_map5: 0.684597
+Early stopping, best iteration is:
+[287]	valid_0's mean_fold_map5: 0.686162
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669172
+[50]	valid_0's mean_fold_map5: 0.676139
+[75]	valid_0's mean_fold_map5: 0.680639
+[100]	valid_0's mean_fold_map5: 0.683412
+[125]	valid_0's mean_fold_map5: 0.684974
+[150]	valid_0's mean_fold_map5: 0.684303
+[175]	valid_0's mean_fold_map5: 0.68489
+[200]	valid_0's mean_fold_map5: 0.68519
+[225]	valid_0's mean_fold_map5: 0.685765
+[250]	valid_0's mean_fold_map5: 0.685851
+[275]	valid_0's mean_fold_map5: 0.685164
+Early stopping, best iteration is:
+[228]	valid_0's mean_fold_map5: 0.686716
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=30
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671203
+[50]	valid_0's mean_fold_map5: 0.674853
+[75]	valid_0's mean_fold_map5: 0.681729
+[100]	valid_0's mean_fold_map5: 0.684285
+[125]	valid_0's mean_fold_map5: 0.684124
+[150]	valid_0's mean_fold_map5: 0.684547
+[175]	valid_0's mean_fold_map5: 0.684744
+[200]	valid_0's mean_fold_map5: 0.684904
+[225]	valid_0's mean_fold_map5: 0.685041
+[250]	valid_0's mean_fold_map5: 0.685154
+[275]	valid_0's mean_fold_map5: 0.685706
+[300]	valid_0's mean_fold_map5: 0.685309
+[325]	valid_0's mean_fold_map5: 0.685194
+Early stopping, best iteration is:
+[283]	valid_0's mean_fold_map5: 0.686006
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank", "id": "5c5040c082ea70182b93", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7320303819444445, "map_fold5": 0.6391402396053557, "mean_map": 0.6855853107749001, "min_child_samples": 30, "name": "candidate_rank_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+
+FIT all_exposures_only: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 30, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669973
+[50]	valid_0's mean_fold_map5: 0.675522
+[75]	valid_0's mean_fold_map5: 0.682843
+[100]	valid_0's mean_fold_map5: 0.68415
+[125]	valid_0's mean_fold_map5: 0.685508
+[150]	valid_0's mean_fold_map5: 0.686999
+[175]	valid_0's mean_fold_map5: 0.68795
+[200]	valid_0's mean_fold_map5: 0.687609
+Early stopping, best iteration is:
+[172]	valid_0's mean_fold_map5: 0.688107
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668396
+[50]	valid_0's mean_fold_map5: 0.676142
+[75]	valid_0's mean_fold_map5: 0.682426
+[100]	valid_0's mean_fold_map5: 0.685193
+[125]	valid_0's mean_fold_map5: 0.686204
+[150]	valid_0's mean_fold_map5: 0.686741
+[175]	valid_0's mean_fold_map5: 0.686981
+[200]	valid_0's mean_fold_map5: 0.686294
+[225]	valid_0's mean_fold_map5: 0.686648
+Early stopping, best iteration is:
+[179]	valid_0's mean_fold_map5: 0.687146
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668928
+[50]	valid_0's mean_fold_map5: 0.676238
+[75]	valid_0's mean_fold_map5: 0.681658
+[100]	valid_0's mean_fold_map5: 0.683047
+[125]	valid_0's mean_fold_map5: 0.685815
+[150]	valid_0's mean_fold_map5: 0.687408
+[175]	valid_0's mean_fold_map5: 0.687194
+[200]	valid_0's mean_fold_map5: 0.687422
+[225]	valid_0's mean_fold_map5: 0.687369
+Early stopping, best iteration is:
+[184]	valid_0's mean_fold_map5: 0.687941
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670919
+[50]	valid_0's mean_fold_map5: 0.677465
+[75]	valid_0's mean_fold_map5: 0.683349
+[100]	valid_0's mean_fold_map5: 0.684082
+[125]	valid_0's mean_fold_map5: 0.686815
+[150]	valid_0's mean_fold_map5: 0.687316
+[175]	valid_0's mean_fold_map5: 0.68703
+Early stopping, best iteration is:
+[144]	valid_0's mean_fold_map5: 0.687558
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668796
+[50]	valid_0's mean_fold_map5: 0.677062
+[75]	valid_0's mean_fold_map5: 0.682167
+[100]	valid_0's mean_fold_map5: 0.685229
+[125]	valid_0's mean_fold_map5: 0.686412
+[150]	valid_0's mean_fold_map5: 0.686383
+[175]	valid_0's mean_fold_map5: 0.686618
+[200]	valid_0's mean_fold_map5: 0.687183
+[225]	valid_0's mean_fold_map5: 0.686736
+Early stopping, best iteration is:
+[194]	valid_0's mean_fold_map5: 0.687893
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "7f123a24d914bfcd557f", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7331863425925926, "map_fold5": 0.6437526427061311, "mean_map": 0.6884694926493619, "min_child_samples": 30, "name": "all_exposures_only", "note": "", "num_leaves": 31, "stage": "one_change"}
+  RESULT {"exposures": "v6_3_existing", "id": "66d3b74182f93d569102", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7315118634259259, "map_fold5": 0.6402352008456659, "mean_map": 0.6858735321357958, "min_child_samples": 30, "name": "channel_share_existing_control", "note": "Already present in v6_3; same configuration, no duplicate feature/fit", "num_leaves": 31, "stage": "one_change"}
+
+FIT parameter_grid_1: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 20, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668261
+[50]	valid_0's mean_fold_map5: 0.676406
+[75]	valid_0's mean_fold_map5: 0.682874
+[100]	valid_0's mean_fold_map5: 0.683867
+[125]	valid_0's mean_fold_map5: 0.685519
+[150]	valid_0's mean_fold_map5: 0.686305
+[175]	valid_0's mean_fold_map5: 0.686001
+[200]	valid_0's mean_fold_map5: 0.686148
+Early stopping, best iteration is:
+[159]	valid_0's mean_fold_map5: 0.686758
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667831
+[50]	valid_0's mean_fold_map5: 0.675983
+[75]	valid_0's mean_fold_map5: 0.680684
+[100]	valid_0's mean_fold_map5: 0.683673
+[125]	valid_0's mean_fold_map5: 0.685036
+[150]	valid_0's mean_fold_map5: 0.685594
+[175]	valid_0's mean_fold_map5: 0.686052
+[200]	valid_0's mean_fold_map5: 0.685987
+Early stopping, best iteration is:
+[165]	valid_0's mean_fold_map5: 0.68621
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670175
+[50]	valid_0's mean_fold_map5: 0.676472
+[75]	valid_0's mean_fold_map5: 0.683835
+[100]	valid_0's mean_fold_map5: 0.684504
+[125]	valid_0's mean_fold_map5: 0.684258
+[150]	valid_0's mean_fold_map5: 0.684938
+[175]	valid_0's mean_fold_map5: 0.685501
+[200]	valid_0's mean_fold_map5: 0.684768
+Early stopping, best iteration is:
+[172]	valid_0's mean_fold_map5: 0.685955
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671273
+[50]	valid_0's mean_fold_map5: 0.676161
+[75]	valid_0's mean_fold_map5: 0.681255
+[100]	valid_0's mean_fold_map5: 0.683591
+[125]	valid_0's mean_fold_map5: 0.684429
+[150]	valid_0's mean_fold_map5: 0.684615
+[175]	valid_0's mean_fold_map5: 0.684454
+[200]	valid_0's mean_fold_map5: 0.684883
+Early stopping, best iteration is:
+[166]	valid_0's mean_fold_map5: 0.685379
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669563
+[50]	valid_0's mean_fold_map5: 0.674662
+[75]	valid_0's mean_fold_map5: 0.681645
+[100]	valid_0's mean_fold_map5: 0.684545
+[125]	valid_0's mean_fold_map5: 0.685282
+[150]	valid_0's mean_fold_map5: 0.686819
+[175]	valid_0's mean_fold_map5: 0.685737
+[200]	valid_0's mean_fold_map5: 0.686107
+Early stopping, best iteration is:
+[154]	valid_0's mean_fold_map5: 0.68709
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "d5df6f428f62c654a20a", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7310717592592593, "map_fold5": 0.6407108879492601, "mean_map": 0.6858913236042596, "min_child_samples": 20, "name": "parameter_grid_1", "note": "", "num_leaves": 31, "stage": "parameters_only"}
+
+FIT parameter_grid_2: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 50, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668261
+[50]	valid_0's mean_fold_map5: 0.676406
+[75]	valid_0's mean_fold_map5: 0.683264
+[100]	valid_0's mean_fold_map5: 0.683882
+[125]	valid_0's mean_fold_map5: 0.685938
+[150]	valid_0's mean_fold_map5: 0.685824
+[175]	valid_0's mean_fold_map5: 0.685454
+[200]	valid_0's mean_fold_map5: 0.686186
+[225]	valid_0's mean_fold_map5: 0.686094
+[250]	valid_0's mean_fold_map5: 0.686685
+[275]	valid_0's mean_fold_map5: 0.68668
+[300]	valid_0's mean_fold_map5: 0.686859
+[325]	valid_0's mean_fold_map5: 0.686771
+[350]	valid_0's mean_fold_map5: 0.685985
+Early stopping, best iteration is:
+[300]	valid_0's mean_fold_map5: 0.686859
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.667831
+[50]	valid_0's mean_fold_map5: 0.675983
+[75]	valid_0's mean_fold_map5: 0.680684
+[100]	valid_0's mean_fold_map5: 0.683926
+[125]	valid_0's mean_fold_map5: 0.684959
+[150]	valid_0's mean_fold_map5: 0.685545
+[175]	valid_0's mean_fold_map5: 0.685487
+Early stopping, best iteration is:
+[143]	valid_0's mean_fold_map5: 0.686429
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670175
+[50]	valid_0's mean_fold_map5: 0.676299
+[75]	valid_0's mean_fold_map5: 0.683708
+[100]	valid_0's mean_fold_map5: 0.685059
+[125]	valid_0's mean_fold_map5: 0.685375
+[150]	valid_0's mean_fold_map5: 0.685675
+Early stopping, best iteration is:
+[113]	valid_0's mean_fold_map5: 0.686022
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671273
+[50]	valid_0's mean_fold_map5: 0.676161
+[75]	valid_0's mean_fold_map5: 0.681534
+[100]	valid_0's mean_fold_map5: 0.684464
+[125]	valid_0's mean_fold_map5: 0.68559
+[150]	valid_0's mean_fold_map5: 0.685332
+[175]	valid_0's mean_fold_map5: 0.685537
+[200]	valid_0's mean_fold_map5: 0.685619
+Early stopping, best iteration is:
+[167]	valid_0's mean_fold_map5: 0.686315
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669563
+[50]	valid_0's mean_fold_map5: 0.674662
+[75]	valid_0's mean_fold_map5: 0.68192
+[100]	valid_0's mean_fold_map5: 0.684557
+[125]	valid_0's mean_fold_map5: 0.685314
+[150]	valid_0's mean_fold_map5: 0.685652
+[175]	valid_0's mean_fold_map5: 0.685861
+Early stopping, best iteration is:
+[134]	valid_0's mean_fold_map5: 0.686338
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "545753b2ee3f5cfc0897", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7316412037037038, "map_fold5": 0.6415424594785061, "mean_map": 0.6865918315911049, "min_child_samples": 50, "name": "parameter_grid_2", "note": "", "num_leaves": 31, "stage": "parameters_only"}
+
+FIT parameter_grid_3: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 20, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675944
+[50]	valid_0's mean_fold_map5: 0.683714
+[75]	valid_0's mean_fold_map5: 0.68654
+[100]	valid_0's mean_fold_map5: 0.685686
+[125]	valid_0's mean_fold_map5: 0.686545
+[150]	valid_0's mean_fold_map5: 0.686683
+[175]	valid_0's mean_fold_map5: 0.68577
+Early stopping, best iteration is:
+[136]	valid_0's mean_fold_map5: 0.68678
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675491
+[50]	valid_0's mean_fold_map5: 0.681881
+[75]	valid_0's mean_fold_map5: 0.684836
+[100]	valid_0's mean_fold_map5: 0.685333
+[125]	valid_0's mean_fold_map5: 0.685055
+[150]	valid_0's mean_fold_map5: 0.684084
+[175]	valid_0's mean_fold_map5: 0.684062
+Early stopping, best iteration is:
+[133]	valid_0's mean_fold_map5: 0.685639
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676256
+[50]	valid_0's mean_fold_map5: 0.684113
+[75]	valid_0's mean_fold_map5: 0.684799
+Early stopping, best iteration is:
+[45]	valid_0's mean_fold_map5: 0.685912
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675548
+[50]	valid_0's mean_fold_map5: 0.68339
+[75]	valid_0's mean_fold_map5: 0.68387
+[100]	valid_0's mean_fold_map5: 0.683867
+Early stopping, best iteration is:
+[61]	valid_0's mean_fold_map5: 0.685241
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676584
+[50]	valid_0's mean_fold_map5: 0.683797
+[75]	valid_0's mean_fold_map5: 0.685719
+[100]	valid_0's mean_fold_map5: 0.684803
+Early stopping, best iteration is:
+[69]	valid_0's mean_fold_map5: 0.686408
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "7258ba49e31a23ceee17", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7309791666666666, "map_fold5": 0.6409284707540521, "mean_map": 0.6859538187103593, "min_child_samples": 20, "name": "parameter_grid_3", "note": "", "num_leaves": 31, "stage": "parameters_only"}
+
+FIT parameter_grid_4: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675944
+[50]	valid_0's mean_fold_map5: 0.683825
+[75]	valid_0's mean_fold_map5: 0.685314
+[100]	valid_0's mean_fold_map5: 0.686248
+[125]	valid_0's mean_fold_map5: 0.686605
+[150]	valid_0's mean_fold_map5: 0.687004
+[175]	valid_0's mean_fold_map5: 0.68766
+[200]	valid_0's mean_fold_map5: 0.686329
+[225]	valid_0's mean_fold_map5: 0.686195
+Early stopping, best iteration is:
+[175]	valid_0's mean_fold_map5: 0.68766
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675491
+[50]	valid_0's mean_fold_map5: 0.681418
+[75]	valid_0's mean_fold_map5: 0.684481
+[100]	valid_0's mean_fold_map5: 0.686142
+[125]	valid_0's mean_fold_map5: 0.686591
+[150]	valid_0's mean_fold_map5: 0.686254
+Early stopping, best iteration is:
+[122]	valid_0's mean_fold_map5: 0.687039
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676256
+[50]	valid_0's mean_fold_map5: 0.685289
+[75]	valid_0's mean_fold_map5: 0.685811
+[100]	valid_0's mean_fold_map5: 0.686328
+[125]	valid_0's mean_fold_map5: 0.686684
+[150]	valid_0's mean_fold_map5: 0.685766
+Early stopping, best iteration is:
+[111]	valid_0's mean_fold_map5: 0.68738
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676194
+[50]	valid_0's mean_fold_map5: 0.684454
+[75]	valid_0's mean_fold_map5: 0.685378
+[100]	valid_0's mean_fold_map5: 0.685366
+[125]	valid_0's mean_fold_map5: 0.685117
+Early stopping, best iteration is:
+[88]	valid_0's mean_fold_map5: 0.686065
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676584
+[50]	valid_0's mean_fold_map5: 0.685718
+[75]	valid_0's mean_fold_map5: 0.68611
+[100]	valid_0's mean_fold_map5: 0.685713
+[125]	valid_0's mean_fold_map5: 0.686268
+Early stopping, best iteration is:
+[83]	valid_0's mean_fold_map5: 0.686556
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "68eb084b37fbf86a8655", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7310188078703703, "map_fold5": 0.6424489076814658, "mean_map": 0.6867338577759181, "min_child_samples": 50, "name": "parameter_grid_4", "note": "", "num_leaves": 31, "stage": "parameters_only"}
+
+FIT parameter_grid_5: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 20, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673289
+[50]	valid_0's mean_fold_map5: 0.67891
+[75]	valid_0's mean_fold_map5: 0.683968
+[100]	valid_0's mean_fold_map5: 0.685415
+[125]	valid_0's mean_fold_map5: 0.686819
+[150]	valid_0's mean_fold_map5: 0.686701
+[175]	valid_0's mean_fold_map5: 0.686927
+[200]	valid_0's mean_fold_map5: 0.685866
+Early stopping, best iteration is:
+[152]	valid_0's mean_fold_map5: 0.687281
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673681
+[50]	valid_0's mean_fold_map5: 0.679355
+[75]	valid_0's mean_fold_map5: 0.682321
+[100]	valid_0's mean_fold_map5: 0.686572
+[125]	valid_0's mean_fold_map5: 0.686835
+[150]	valid_0's mean_fold_map5: 0.686981
+[175]	valid_0's mean_fold_map5: 0.686585
+Early stopping, best iteration is:
+[148]	valid_0's mean_fold_map5: 0.687437
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.672554
+[50]	valid_0's mean_fold_map5: 0.680004
+[75]	valid_0's mean_fold_map5: 0.684668
+[100]	valid_0's mean_fold_map5: 0.685876
+[125]	valid_0's mean_fold_map5: 0.686824
+[150]	valid_0's mean_fold_map5: 0.68796
+[175]	valid_0's mean_fold_map5: 0.687214
+Early stopping, best iteration is:
+[136]	valid_0's mean_fold_map5: 0.688365
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673273
+[50]	valid_0's mean_fold_map5: 0.676965
+[75]	valid_0's mean_fold_map5: 0.682745
+[100]	valid_0's mean_fold_map5: 0.685261
+[125]	valid_0's mean_fold_map5: 0.686321
+[150]	valid_0's mean_fold_map5: 0.6869
+[175]	valid_0's mean_fold_map5: 0.686385
+[200]	valid_0's mean_fold_map5: 0.686006
+Early stopping, best iteration is:
+[172]	valid_0's mean_fold_map5: 0.687044
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674371
+[50]	valid_0's mean_fold_map5: 0.67951
+[75]	valid_0's mean_fold_map5: 0.682822
+[100]	valid_0's mean_fold_map5: 0.684716
+[125]	valid_0's mean_fold_map5: 0.685157
+[150]	valid_0's mean_fold_map5: 0.684497
+Early stopping, best iteration is:
+[118]	valid_0's mean_fold_map5: 0.685936
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "669ec9c8d99705d79e02", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7310694444444443, "map_fold5": 0.6436575052854122, "mean_map": 0.6873634748649282, "min_child_samples": 20, "name": "parameter_grid_5", "note": "", "num_leaves": 63, "stage": "parameters_only"}
+
+FIT parameter_grid_6: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673289
+[50]	valid_0's mean_fold_map5: 0.679529
+[75]	valid_0's mean_fold_map5: 0.684917
+[100]	valid_0's mean_fold_map5: 0.685724
+[125]	valid_0's mean_fold_map5: 0.687293
+[150]	valid_0's mean_fold_map5: 0.687317
+[175]	valid_0's mean_fold_map5: 0.686935
+Early stopping, best iteration is:
+[145]	valid_0's mean_fold_map5: 0.687808
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.67379
+[50]	valid_0's mean_fold_map5: 0.680335
+[75]	valid_0's mean_fold_map5: 0.685191
+[100]	valid_0's mean_fold_map5: 0.687408
+[125]	valid_0's mean_fold_map5: 0.687902
+[150]	valid_0's mean_fold_map5: 0.690227
+[175]	valid_0's mean_fold_map5: 0.689886
+[200]	valid_0's mean_fold_map5: 0.690715
+[225]	valid_0's mean_fold_map5: 0.689927
+[250]	valid_0's mean_fold_map5: 0.690155
+Early stopping, best iteration is:
+[201]	valid_0's mean_fold_map5: 0.690871
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.672554
+[50]	valid_0's mean_fold_map5: 0.680929
+[75]	valid_0's mean_fold_map5: 0.683481
+[100]	valid_0's mean_fold_map5: 0.685254
+[125]	valid_0's mean_fold_map5: 0.686914
+[150]	valid_0's mean_fold_map5: 0.686329
+[175]	valid_0's mean_fold_map5: 0.687679
+[200]	valid_0's mean_fold_map5: 0.687767
+Early stopping, best iteration is:
+[173]	valid_0's mean_fold_map5: 0.688015
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673241
+[50]	valid_0's mean_fold_map5: 0.679395
+[75]	valid_0's mean_fold_map5: 0.684017
+[100]	valid_0's mean_fold_map5: 0.687002
+[125]	valid_0's mean_fold_map5: 0.687013
+Early stopping, best iteration is:
+[98]	valid_0's mean_fold_map5: 0.687697
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674371
+[50]	valid_0's mean_fold_map5: 0.679473
+[75]	valid_0's mean_fold_map5: 0.683018
+[100]	valid_0's mean_fold_map5: 0.68451
+[125]	valid_0's mean_fold_map5: 0.68508
+[150]	valid_0's mean_fold_map5: 0.686199
+Early stopping, best iteration is:
+[118]	valid_0's mean_fold_map5: 0.686384
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "c19c13069255ab4e31bc", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7314227430555554, "map_fold5": 0.6446793516560958, "mean_map": 0.6880510473558257, "min_child_samples": 50, "name": "parameter_grid_6", "note": "", "num_leaves": 63, "stage": "parameters_only"}
+
+FIT parameter_grid_7: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 20, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.68019
+[50]	valid_0's mean_fold_map5: 0.684704
+[75]	valid_0's mean_fold_map5: 0.6865
+[100]	valid_0's mean_fold_map5: 0.685426
+[125]	valid_0's mean_fold_map5: 0.686027
+Early stopping, best iteration is:
+[87]	valid_0's mean_fold_map5: 0.686784
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679105
+[50]	valid_0's mean_fold_map5: 0.685609
+[75]	valid_0's mean_fold_map5: 0.686859
+[100]	valid_0's mean_fold_map5: 0.687971
+[125]	valid_0's mean_fold_map5: 0.685285
+[150]	valid_0's mean_fold_map5: 0.683897
+Early stopping, best iteration is:
+[100]	valid_0's mean_fold_map5: 0.687971
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679501
+[50]	valid_0's mean_fold_map5: 0.685763
+[75]	valid_0's mean_fold_map5: 0.687745
+[100]	valid_0's mean_fold_map5: 0.68565
+Early stopping, best iteration is:
+[74]	valid_0's mean_fold_map5: 0.688121
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679598
+[50]	valid_0's mean_fold_map5: 0.684429
+[75]	valid_0's mean_fold_map5: 0.685852
+[100]	valid_0's mean_fold_map5: 0.686087
+Early stopping, best iteration is:
+[71]	valid_0's mean_fold_map5: 0.686345
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.680332
+[50]	valid_0's mean_fold_map5: 0.685313
+[75]	valid_0's mean_fold_map5: 0.685941
+[100]	valid_0's mean_fold_map5: 0.686019
+[125]	valid_0's mean_fold_map5: 0.686125
+[150]	valid_0's mean_fold_map5: 0.684971
+[175]	valid_0's mean_fold_map5: 0.684562
+Early stopping, best iteration is:
+[130]	valid_0's mean_fold_map5: 0.68678
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "30d0071ed3205e07da0c", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7303012152777778, "map_fold5": 0.6457188160676531, "mean_map": 0.6880100156727155, "min_child_samples": 20, "name": "parameter_grid_7", "note": "", "num_leaves": 63, "stage": "parameters_only"}
+
+FIT parameter_grid_8: {"candidate_size": 200, "extras": [], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.680698
+[50]	valid_0's mean_fold_map5: 0.685614
+[75]	valid_0's mean_fold_map5: 0.686385
+[100]	valid_0's mean_fold_map5: 0.687153
+[125]	valid_0's mean_fold_map5: 0.686757
+Early stopping, best iteration is:
+[96]	valid_0's mean_fold_map5: 0.68798
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.677809
+[50]	valid_0's mean_fold_map5: 0.685838
+[75]	valid_0's mean_fold_map5: 0.688481
+[100]	valid_0's mean_fold_map5: 0.687313
+[125]	valid_0's mean_fold_map5: 0.685891
+Early stopping, best iteration is:
+[76]	valid_0's mean_fold_map5: 0.689057
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679685
+[50]	valid_0's mean_fold_map5: 0.684112
+[75]	valid_0's mean_fold_map5: 0.683578
+Early stopping, best iteration is:
+[47]	valid_0's mean_fold_map5: 0.684994
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.68026
+[50]	valid_0's mean_fold_map5: 0.684526
+[75]	valid_0's mean_fold_map5: 0.686012
+[100]	valid_0's mean_fold_map5: 0.685757
+[125]	valid_0's mean_fold_map5: 0.685221
+Early stopping, best iteration is:
+[80]	valid_0's mean_fold_map5: 0.686679
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=29
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679081
+[50]	valid_0's mean_fold_map5: 0.684614
+[75]	valid_0's mean_fold_map5: 0.685543
+[100]	valid_0's mean_fold_map5: 0.685551
+[125]	valid_0's mean_fold_map5: 0.684398
+Early stopping, best iteration is:
+[88]	valid_0's mean_fold_map5: 0.68604
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "v6_3_existing", "id": "9c4f9baa2772b4ff27bd", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7311770833333333, "map_fold5": 0.6434319943622269, "mean_map": 0.6873045388477801, "min_child_samples": 50, "name": "parameter_grid_8", "note": "", "num_leaves": 63, "stage": "parameters_only"}
+
+COMBINATION GRID: label=binary, exposures=['candidate_rank', 'decay4', 'decay8', 'halves']; all eight parameter settings
+
+FIT combination_grid_1: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 20, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669973
+[50]	valid_0's mean_fold_map5: 0.675522
+[75]	valid_0's mean_fold_map5: 0.683629
+[100]	valid_0's mean_fold_map5: 0.68469
+[125]	valid_0's mean_fold_map5: 0.685793
+[150]	valid_0's mean_fold_map5: 0.686821
+[175]	valid_0's mean_fold_map5: 0.68662
+[200]	valid_0's mean_fold_map5: 0.686539
+[225]	valid_0's mean_fold_map5: 0.686445
+Early stopping, best iteration is:
+[186]	valid_0's mean_fold_map5: 0.687521
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668396
+[50]	valid_0's mean_fold_map5: 0.676142
+[75]	valid_0's mean_fold_map5: 0.683584
+[100]	valid_0's mean_fold_map5: 0.685547
+[125]	valid_0's mean_fold_map5: 0.686223
+[150]	valid_0's mean_fold_map5: 0.686562
+[175]	valid_0's mean_fold_map5: 0.686858
+[200]	valid_0's mean_fold_map5: 0.686684
+[225]	valid_0's mean_fold_map5: 0.687329
+[250]	valid_0's mean_fold_map5: 0.687368
+Early stopping, best iteration is:
+[221]	valid_0's mean_fold_map5: 0.68748
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668928
+[50]	valid_0's mean_fold_map5: 0.676238
+[75]	valid_0's mean_fold_map5: 0.681658
+[100]	valid_0's mean_fold_map5: 0.682886
+[125]	valid_0's mean_fold_map5: 0.686551
+[150]	valid_0's mean_fold_map5: 0.686939
+[175]	valid_0's mean_fold_map5: 0.686063
+Early stopping, best iteration is:
+[139]	valid_0's mean_fold_map5: 0.687281
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670919
+[50]	valid_0's mean_fold_map5: 0.677465
+[75]	valid_0's mean_fold_map5: 0.683349
+[100]	valid_0's mean_fold_map5: 0.684199
+[125]	valid_0's mean_fold_map5: 0.686642
+[150]	valid_0's mean_fold_map5: 0.686929
+[175]	valid_0's mean_fold_map5: 0.687235
+[200]	valid_0's mean_fold_map5: 0.687397
+Early stopping, best iteration is:
+[161]	valid_0's mean_fold_map5: 0.687643
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668796
+[50]	valid_0's mean_fold_map5: 0.677062
+[75]	valid_0's mean_fold_map5: 0.682215
+[100]	valid_0's mean_fold_map5: 0.685481
+[125]	valid_0's mean_fold_map5: 0.685955
+[150]	valid_0's mean_fold_map5: 0.686478
+[175]	valid_0's mean_fold_map5: 0.686902
+[200]	valid_0's mean_fold_map5: 0.688055
+[225]	valid_0's mean_fold_map5: 0.685842
+Early stopping, best iteration is:
+[199]	valid_0's mean_fold_map5: 0.688118
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "d0cd8277fe887e765bd2", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7319236111111113, "map_fold5": 0.6437667371388301, "mean_map": 0.6878451741249707, "min_child_samples": 20, "name": "combination_grid_1", "note": "", "num_leaves": 31, "stage": "combination"}
+
+FIT combination_grid_2: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 50, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.669973
+[50]	valid_0's mean_fold_map5: 0.675522
+[75]	valid_0's mean_fold_map5: 0.682277
+[100]	valid_0's mean_fold_map5: 0.684692
+[125]	valid_0's mean_fold_map5: 0.686554
+[150]	valid_0's mean_fold_map5: 0.687937
+[175]	valid_0's mean_fold_map5: 0.688052
+[200]	valid_0's mean_fold_map5: 0.68766
+Early stopping, best iteration is:
+[171]	valid_0's mean_fold_map5: 0.688264
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668396
+[50]	valid_0's mean_fold_map5: 0.676142
+[75]	valid_0's mean_fold_map5: 0.682905
+[100]	valid_0's mean_fold_map5: 0.68528
+[125]	valid_0's mean_fold_map5: 0.685682
+[150]	valid_0's mean_fold_map5: 0.686279
+Early stopping, best iteration is:
+[122]	valid_0's mean_fold_map5: 0.686832
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668928
+[50]	valid_0's mean_fold_map5: 0.676238
+[75]	valid_0's mean_fold_map5: 0.681587
+[100]	valid_0's mean_fold_map5: 0.684484
+[125]	valid_0's mean_fold_map5: 0.685101
+[150]	valid_0's mean_fold_map5: 0.686198
+[175]	valid_0's mean_fold_map5: 0.687574
+[200]	valid_0's mean_fold_map5: 0.687503
+Early stopping, best iteration is:
+[172]	valid_0's mean_fold_map5: 0.687699
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670919
+[50]	valid_0's mean_fold_map5: 0.677465
+[75]	valid_0's mean_fold_map5: 0.682408
+[100]	valid_0's mean_fold_map5: 0.684623
+[125]	valid_0's mean_fold_map5: 0.686696
+[150]	valid_0's mean_fold_map5: 0.687468
+[175]	valid_0's mean_fold_map5: 0.687779
+[200]	valid_0's mean_fold_map5: 0.687516
+Early stopping, best iteration is:
+[172]	valid_0's mean_fold_map5: 0.687998
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.668796
+[50]	valid_0's mean_fold_map5: 0.677062
+[75]	valid_0's mean_fold_map5: 0.681763
+[100]	valid_0's mean_fold_map5: 0.684356
+[125]	valid_0's mean_fold_map5: 0.685395
+[150]	valid_0's mean_fold_map5: 0.686109
+[175]	valid_0's mean_fold_map5: 0.685992
+[200]	valid_0's mean_fold_map5: 0.685478
+Early stopping, best iteration is:
+[166]	valid_0's mean_fold_map5: 0.686781
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "a12b7cfd1ca3cb834450", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7308217592592593, "map_fold5": 0.6432205778717407, "mean_map": 0.6870211685655, "min_child_samples": 50, "name": "combination_grid_2", "note": "", "num_leaves": 31, "stage": "combination"}
+
+FIT combination_grid_3: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 20, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676892
+[50]	valid_0's mean_fold_map5: 0.684747
+[75]	valid_0's mean_fold_map5: 0.688194
+[100]	valid_0's mean_fold_map5: 0.687212
+[125]	valid_0's mean_fold_map5: 0.686971
+Early stopping, best iteration is:
+[76]	valid_0's mean_fold_map5: 0.688347
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676098
+[50]	valid_0's mean_fold_map5: 0.684541
+[75]	valid_0's mean_fold_map5: 0.686119
+[100]	valid_0's mean_fold_map5: 0.686407
+[125]	valid_0's mean_fold_map5: 0.686055
+Early stopping, best iteration is:
+[86]	valid_0's mean_fold_map5: 0.687347
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675401
+[50]	valid_0's mean_fold_map5: 0.68276
+[75]	valid_0's mean_fold_map5: 0.685531
+[100]	valid_0's mean_fold_map5: 0.686182
+[125]	valid_0's mean_fold_map5: 0.685703
+[150]	valid_0's mean_fold_map5: 0.684541
+Early stopping, best iteration is:
+[109]	valid_0's mean_fold_map5: 0.686694
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674999
+[50]	valid_0's mean_fold_map5: 0.682468
+[75]	valid_0's mean_fold_map5: 0.686295
+[100]	valid_0's mean_fold_map5: 0.685844
+[125]	valid_0's mean_fold_map5: 0.685125
+Early stopping, best iteration is:
+[82]	valid_0's mean_fold_map5: 0.687155
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676383
+[50]	valid_0's mean_fold_map5: 0.68381
+[75]	valid_0's mean_fold_map5: 0.685733
+[100]	valid_0's mean_fold_map5: 0.685306
+[125]	valid_0's mean_fold_map5: 0.686151
+[150]	valid_0's mean_fold_map5: 0.685687
+[175]	valid_0's mean_fold_map5: 0.686598
+[200]	valid_0's mean_fold_map5: 0.686389
+Early stopping, best iteration is:
+[167]	valid_0's mean_fold_map5: 0.686942
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "e58cd398f2e71b65fab7", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7319007523148147, "map_fold5": 0.6422374911909795, "mean_map": 0.687069121752897, "min_child_samples": 20, "name": "combination_grid_3", "note": "", "num_leaves": 31, "stage": "combination"}
+
+FIT combination_grid_4: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 31}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676892
+[50]	valid_0's mean_fold_map5: 0.684441
+[75]	valid_0's mean_fold_map5: 0.686935
+[100]	valid_0's mean_fold_map5: 0.688445
+[125]	valid_0's mean_fold_map5: 0.688112
+Early stopping, best iteration is:
+[99]	valid_0's mean_fold_map5: 0.688632
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676098
+[50]	valid_0's mean_fold_map5: 0.685442
+[75]	valid_0's mean_fold_map5: 0.687043
+[100]	valid_0's mean_fold_map5: 0.688074
+[125]	valid_0's mean_fold_map5: 0.688408
+[150]	valid_0's mean_fold_map5: 0.687725
+[175]	valid_0's mean_fold_map5: 0.686007
+Early stopping, best iteration is:
+[136]	valid_0's mean_fold_map5: 0.688644
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.675401
+[50]	valid_0's mean_fold_map5: 0.683494
+[75]	valid_0's mean_fold_map5: 0.686044
+[100]	valid_0's mean_fold_map5: 0.687326
+[125]	valid_0's mean_fold_map5: 0.687406
+[150]	valid_0's mean_fold_map5: 0.686874
+[175]	valid_0's mean_fold_map5: 0.686012
+[200]	valid_0's mean_fold_map5: 0.686253
+Early stopping, best iteration is:
+[159]	valid_0's mean_fold_map5: 0.687563
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674999
+[50]	valid_0's mean_fold_map5: 0.682668
+[75]	valid_0's mean_fold_map5: 0.686485
+[100]	valid_0's mean_fold_map5: 0.68802
+[125]	valid_0's mean_fold_map5: 0.686848
+Early stopping, best iteration is:
+[98]	valid_0's mean_fold_map5: 0.688523
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.676383
+[50]	valid_0's mean_fold_map5: 0.684251
+[75]	valid_0's mean_fold_map5: 0.683887
+[100]	valid_0's mean_fold_map5: 0.683699
+[125]	valid_0's mean_fold_map5: 0.684697
+Early stopping, best iteration is:
+[82]	valid_0's mean_fold_map5: 0.685428
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "b9c82fa07b81a4c0546e", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7325685763888888, "map_fold5": 0.6437279774489078, "mean_map": 0.6881482769188982, "min_child_samples": 50, "name": "combination_grid_4", "note": "", "num_leaves": 31, "stage": "combination"}
+
+FIT combination_grid_5: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 20, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673725
+[50]	valid_0's mean_fold_map5: 0.680896
+[75]	valid_0's mean_fold_map5: 0.68436
+[100]	valid_0's mean_fold_map5: 0.686932
+[125]	valid_0's mean_fold_map5: 0.686624
+[150]	valid_0's mean_fold_map5: 0.687717
+Early stopping, best iteration is:
+[106]	valid_0's mean_fold_map5: 0.688214
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673835
+[50]	valid_0's mean_fold_map5: 0.679351
+[75]	valid_0's mean_fold_map5: 0.684264
+[100]	valid_0's mean_fold_map5: 0.687207
+[125]	valid_0's mean_fold_map5: 0.687291
+[150]	valid_0's mean_fold_map5: 0.689011
+[175]	valid_0's mean_fold_map5: 0.689692
+[200]	valid_0's mean_fold_map5: 0.688888
+[225]	valid_0's mean_fold_map5: 0.689576
+Early stopping, best iteration is:
+[180]	valid_0's mean_fold_map5: 0.690245
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673148
+[50]	valid_0's mean_fold_map5: 0.679373
+[75]	valid_0's mean_fold_map5: 0.684311
+[100]	valid_0's mean_fold_map5: 0.685589
+[125]	valid_0's mean_fold_map5: 0.686765
+[150]	valid_0's mean_fold_map5: 0.686931
+[175]	valid_0's mean_fold_map5: 0.686703
+Early stopping, best iteration is:
+[142]	valid_0's mean_fold_map5: 0.68741
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674751
+[50]	valid_0's mean_fold_map5: 0.680652
+[75]	valid_0's mean_fold_map5: 0.684827
+[100]	valid_0's mean_fold_map5: 0.68686
+[125]	valid_0's mean_fold_map5: 0.688299
+[150]	valid_0's mean_fold_map5: 0.688495
+[175]	valid_0's mean_fold_map5: 0.688128
+Early stopping, best iteration is:
+[139]	valid_0's mean_fold_map5: 0.688934
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674687
+[50]	valid_0's mean_fold_map5: 0.680157
+[75]	valid_0's mean_fold_map5: 0.685766
+[100]	valid_0's mean_fold_map5: 0.686834
+[125]	valid_0's mean_fold_map5: 0.687092
+[150]	valid_0's mean_fold_map5: 0.687187
+[175]	valid_0's mean_fold_map5: 0.687646
+[200]	valid_0's mean_fold_map5: 0.686915
+Early stopping, best iteration is:
+[165]	valid_0's mean_fold_map5: 0.68804
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "24e2ce86e6d87497ac35", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7318255208333333, "map_fold5": 0.6463460183227626, "mean_map": 0.6890857695780479, "min_child_samples": 20, "name": "combination_grid_5", "note": "", "num_leaves": 63, "stage": "combination"}
+
+FIT combination_grid_6: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673668
+[50]	valid_0's mean_fold_map5: 0.679529
+[75]	valid_0's mean_fold_map5: 0.683047
+[100]	valid_0's mean_fold_map5: 0.685311
+[125]	valid_0's mean_fold_map5: 0.686613
+[150]	valid_0's mean_fold_map5: 0.685088
+Early stopping, best iteration is:
+[112]	valid_0's mean_fold_map5: 0.687099
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.67416
+[50]	valid_0's mean_fold_map5: 0.680153
+[75]	valid_0's mean_fold_map5: 0.685173
+[100]	valid_0's mean_fold_map5: 0.686561
+[125]	valid_0's mean_fold_map5: 0.688656
+[150]	valid_0's mean_fold_map5: 0.688726
+[175]	valid_0's mean_fold_map5: 0.688121
+Early stopping, best iteration is:
+[129]	valid_0's mean_fold_map5: 0.688791
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.673983
+[50]	valid_0's mean_fold_map5: 0.678942
+[75]	valid_0's mean_fold_map5: 0.683557
+[100]	valid_0's mean_fold_map5: 0.685217
+[125]	valid_0's mean_fold_map5: 0.686386
+[150]	valid_0's mean_fold_map5: 0.68748
+[175]	valid_0's mean_fold_map5: 0.688695
+[200]	valid_0's mean_fold_map5: 0.688098
+[225]	valid_0's mean_fold_map5: 0.687702
+Early stopping, best iteration is:
+[177]	valid_0's mean_fold_map5: 0.688746
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674555
+[50]	valid_0's mean_fold_map5: 0.680909
+[75]	valid_0's mean_fold_map5: 0.682922
+[100]	valid_0's mean_fold_map5: 0.686221
+[125]	valid_0's mean_fold_map5: 0.686644
+[150]	valid_0's mean_fold_map5: 0.687031
+[175]	valid_0's mean_fold_map5: 0.687026
+[200]	valid_0's mean_fold_map5: 0.688023
+[225]	valid_0's mean_fold_map5: 0.687771
+Early stopping, best iteration is:
+[192]	valid_0's mean_fold_map5: 0.688551
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.674897
+[50]	valid_0's mean_fold_map5: 0.682199
+[75]	valid_0's mean_fold_map5: 0.683641
+[100]	valid_0's mean_fold_map5: 0.686581
+[125]	valid_0's mean_fold_map5: 0.686276
+[150]	valid_0's mean_fold_map5: 0.687432
+[175]	valid_0's mean_fold_map5: 0.688118
+[200]	valid_0's mean_fold_map5: 0.68707
+Early stopping, best iteration is:
+[174]	valid_0's mean_fold_map5: 0.688196
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "43979227d387ff0dd270", "label": "binary", "learning_rate": 0.05, "map_fold10": 0.7316076388888888, "map_fold5": 0.6455778717406625, "mean_map": 0.6885927553147757, "min_child_samples": 50, "name": "combination_grid_6", "note": "", "num_leaves": 63, "stage": "combination"}
+
+FIT combination_grid_7: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 20, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679948
+[50]	valid_0's mean_fold_map5: 0.68666
+[75]	valid_0's mean_fold_map5: 0.68846
+[100]	valid_0's mean_fold_map5: 0.68845
+[125]	valid_0's mean_fold_map5: 0.686969
+Early stopping, best iteration is:
+[84]	valid_0's mean_fold_map5: 0.688654
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.681499
+[50]	valid_0's mean_fold_map5: 0.687192
+[75]	valid_0's mean_fold_map5: 0.687143
+[100]	valid_0's mean_fold_map5: 0.686871
+[125]	valid_0's mean_fold_map5: 0.687035
+[150]	valid_0's mean_fold_map5: 0.68599
+Early stopping, best iteration is:
+[116]	valid_0's mean_fold_map5: 0.68832
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.680199
+[50]	valid_0's mean_fold_map5: 0.685776
+[75]	valid_0's mean_fold_map5: 0.687521
+[100]	valid_0's mean_fold_map5: 0.685302
+Early stopping, best iteration is:
+[68]	valid_0's mean_fold_map5: 0.688196
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679503
+[50]	valid_0's mean_fold_map5: 0.686517
+[75]	valid_0's mean_fold_map5: 0.687539
+[100]	valid_0's mean_fold_map5: 0.687951
+[125]	valid_0's mean_fold_map5: 0.687102
+Early stopping, best iteration is:
+[97]	valid_0's mean_fold_map5: 0.688815
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679661
+[50]	valid_0's mean_fold_map5: 0.685111
+[75]	valid_0's mean_fold_map5: 0.685598
+[100]	valid_0's mean_fold_map5: 0.684493
+[125]	valid_0's mean_fold_map5: 0.684153
+Early stopping, best iteration is:
+[90]	valid_0's mean_fold_map5: 0.686224
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "10c2cfb20e8cfc954ae5", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7314262152777778, "map_fold5": 0.6445172656800564, "mean_map": 0.6879717404789172, "min_child_samples": 20, "name": "combination_grid_7", "note": "", "num_leaves": 63, "stage": "combination"}
+
+FIT combination_grid_8: {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}
+  seed 12345: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.680621
+[50]	valid_0's mean_fold_map5: 0.687718
+[75]	valid_0's mean_fold_map5: 0.687996
+[100]	valid_0's mean_fold_map5: 0.68639
+Early stopping, best iteration is:
+[57]	valid_0's mean_fold_map5: 0.689065
+Evaluated only: mean_fold_map5
+  seed 12346: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.6797
+[50]	valid_0's mean_fold_map5: 0.687113
+[75]	valid_0's mean_fold_map5: 0.68946
+[100]	valid_0's mean_fold_map5: 0.688838
+[125]	valid_0's mean_fold_map5: 0.688813
+Early stopping, best iteration is:
+[95]	valid_0's mean_fold_map5: 0.689669
+Evaluated only: mean_fold_map5
+  seed 12347: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679497
+[50]	valid_0's mean_fold_map5: 0.685496
+[75]	valid_0's mean_fold_map5: 0.686058
+[100]	valid_0's mean_fold_map5: 0.686427
+[125]	valid_0's mean_fold_map5: 0.684939
+[150]	valid_0's mean_fold_map5: 0.685412
+Early stopping, best iteration is:
+[108]	valid_0's mean_fold_map5: 0.68694
+Evaluated only: mean_fold_map5
+  seed 12348: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679039
+[50]	valid_0's mean_fold_map5: 0.686805
+[75]	valid_0's mean_fold_map5: 0.68879
+[100]	valid_0's mean_fold_map5: 0.68845
+[125]	valid_0's mean_fold_map5: 0.688357
+Early stopping, best iteration is:
+[78]	valid_0's mean_fold_map5: 0.689057
+Evaluated only: mean_fold_map5
+  seed 12349: train rows=2,948,512, queries=7,628, features=34
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.679944
+[50]	valid_0's mean_fold_map5: 0.686896
+[75]	valid_0's mean_fold_map5: 0.686279
+[100]	valid_0's mean_fold_map5: 0.686024
+Early stopping, best iteration is:
+[54]	valid_0's mean_fold_map5: 0.687367
+Evaluated only: mean_fold_map5
+  RESULT {"exposures": "candidate_rank/decay4/decay8/halves", "id": "6a441367266b8e5727ca", "label": "binary", "learning_rate": 0.1, "map_fold10": 0.7321958912037038, "map_fold5": 0.6467864693446088, "mean_map": 0.6894911802741563, "min_child_samples": 50, "name": "combination_grid_8", "note": "", "num_leaves": 63, "stage": "combination"}
+BEST TESTED COMBINATION: {"config": {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}, "id": "6a441367266b8e5727ca", "iterations": {"12345": 57, "12346": 95, "12347": 108, "12348": 78, "12349": 54}, "map_fold10": 0.7321958912037038, "map_fold5": 0.6467864693446088, "mean_map": 0.6894911802741563}
+
+ONE-CHANGE / GRID / COMBINATION TABLE — UNWEIGHTED MEAN MAP@5
+                          name           stage                   id   label                           exposures  num_leaves  learning_rate  min_child_samples  map_fold10  map_fold5  mean_map                                                                  note  delta_vs_binary_baseline
+            combination_grid_8     combination 6a441367266b8e5727ca  binary candidate_rank/decay4/decay8/halves          63           0.10                 50    0.732196   0.646786  0.689491                                                                                        0.003618
+            combination_grid_5     combination 24e2ce86e6d87497ac35  binary candidate_rank/decay4/decay8/halves          63           0.05                 20    0.731826   0.646346  0.689086                                                                                        0.003212
+            combination_grid_6     combination 43979227d387ff0dd270  binary candidate_rank/decay4/decay8/halves          63           0.05                 50    0.731608   0.645578  0.688593                                                                                        0.002719
+            all_exposures_only      one_change 7f123a24d914bfcd557f  binary candidate_rank/decay4/decay8/halves          31           0.05                 30    0.733186   0.643753  0.688469                                                                                        0.002596
+            combination_grid_4     combination b9c82fa07b81a4c0546e  binary candidate_rank/decay4/decay8/halves          31           0.10                 50    0.732569   0.643728  0.688148                                                                                        0.002275
+              parameter_grid_6 parameters_only c19c13069255ab4e31bc  binary                       v6_3_existing          63           0.05                 50    0.731423   0.644679  0.688051                                                                                        0.002178
+              parameter_grid_7 parameters_only 30d0071ed3205e07da0c  binary                       v6_3_existing          63           0.10                 20    0.730301   0.645719  0.688010                                                                                        0.002136
+            combination_grid_7     combination 10c2cfb20e8cfc954ae5  binary candidate_rank/decay4/decay8/halves          63           0.10                 20    0.731426   0.644517  0.687972                                                                                        0.002098
+                   halves_only      one_change 0ca7dabf22a6f79c7a0e  binary                              halves          31           0.05                 30    0.732978   0.642798  0.687888                                                                                        0.002014
+            combination_grid_1     combination d0cd8277fe887e765bd2  binary candidate_rank/decay4/decay8/halves          31           0.05                 20    0.731924   0.643767  0.687845                                                                                        0.001972
+              parameter_grid_5 parameters_only 669ec9c8d99705d79e02  binary                       v6_3_existing          63           0.05                 20    0.731069   0.643658  0.687363                                                                                        0.001490
+              parameter_grid_8 parameters_only 9c4f9baa2772b4ff27bd  binary                       v6_3_existing          63           0.10                 50    0.731177   0.643432  0.687305                                                                                        0.001431
+            combination_grid_3     combination e58cd398f2e71b65fab7  binary candidate_rank/decay4/decay8/halves          31           0.10                 20    0.731901   0.642237  0.687069                                                                                        0.001196
+                   decay8_only      one_change b21943d768954658d725  binary                              decay8          31           0.05                 30    0.732881   0.641177  0.687029                                                                                        0.001155
+            combination_grid_2     combination a12b7cfd1ca3cb834450  binary candidate_rank/decay4/decay8/halves          31           0.05                 50    0.730822   0.643221  0.687021                                                                                        0.001148
+                   decay4_only      one_change cbc95921c590d4c948ca  binary                              decay4          31           0.05                 30    0.732124   0.641702  0.686913                                                                                        0.001039
+              parameter_grid_4 parameters_only 68eb084b37fbf86a8655  binary                       v6_3_existing          31           0.10                 50    0.731019   0.642449  0.686734                                                                                        0.000860
+              parameter_grid_2 parameters_only 545753b2ee3f5cfc0897  binary                       v6_3_existing          31           0.05                 50    0.731641   0.641542  0.686592                                                                                        0.000718
+              parameter_grid_3 parameters_only 7258ba49e31a23ceee17  binary                       v6_3_existing          31           0.10                 20    0.730979   0.640928  0.685954                                                                                        0.000080
+              parameter_grid_1 parameters_only d5df6f428f62c654a20a  binary                       v6_3_existing          31           0.05                 20    0.731072   0.640711  0.685891                                                                                        0.000018
+               binary_baseline      one_change 66d3b74182f93d569102  binary                       v6_3_existing          31           0.05                 30    0.731512   0.640235  0.685874                                                                                        0.000000
+channel_share_existing_control      one_change 66d3b74182f93d569102  binary                       v6_3_existing          31           0.05                 30    0.731512   0.640235  0.685874 Already present in v6_3; same configuration, no duplicate feature/fit                  0.000000
+           candidate_rank_only      one_change 5c5040c082ea70182b93  binary                      candidate_rank          31           0.05                 30    0.732030   0.639140  0.685585                                                                                       -0.000288
+              graded_days_only      one_change 5839137b7727ce625151    days                       v6_3_existing          31           0.05                 30    0.729319   0.639399  0.684359                                                                                       -0.001514
+           graded_airings_only      one_change d6289375a13ee302c0ed airings                       v6_3_existing          31           0.05                 30    0.728479   0.638717  0.683598                                                                                       -0.002276
+
+FINAL submission_v7_1.csv: {"config": {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.1, "min_child_samples": 50, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}, "id": "6a441367266b8e5727ca", "iterations": {"12345": 57, "12346": 95, "12347": 108, "12348": 78, "12349": 54}, "map_fold10": 0.7321958912037038, "map_fold5": 0.6467864693446088, "mean_map": 0.6894911802741563}
+  refit seed 12345 on 100% of stacked queries, trees=57
+  refit seed 12346 on 100% of stacked queries, trees=95
+  refit seed 12347 on 100% of stacked queries, trees=108
+  refit seed 12348 on 100% of stacked queries, trees=78
+  refit seed 12349 on 100% of stacked queries, trees=54
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v7_1.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 134
+    pool_size: 6636
+FEATURE IMPORTANCES
+                         feature     mean_gain  mean_split
+                   exposure_rank 183891.059023       246.8
+              E48_candidate_rank 124708.340262       168.2
+      user_item_airings_per_week  34880.593803       102.8
+         user_item_days_per_week  28586.723824       142.0
+       popularity_users_per_week  20635.206224       246.6
+                        ppr_rank  12098.697007       214.2
+    global_item_seconds_per_week  11912.268710       195.4
+       E168_second_half_per_week   9871.953279       170.0
+         user_item_channel_share   9728.441741       547.8
+         target_airings_per_week   8332.060933       486.0
+            target_week_coverage   6954.505603       148.2
+             user_category_share   4931.711580       340.8
+                       ppr_score   3285.718935       214.4
+         target_airtime_per_week   2983.979337       365.4
+                      category_3   2819.247807        48.6
+            airtime_ratio_weekly   2083.813790       285.2
+     E168_decay4_per_target_week   1918.684742       163.2
+  exposure_score_per_target_week   1777.044787       188.4
+last2weeks_item_seconds_per_week   1708.314037       142.4
+                      category_5   1472.867389        32.0
+     E168_decay8_per_target_week    683.309697        38.2
+     last4weeks_seconds_per_week    459.400296        53.6
+        E168_first_half_per_week    433.474989        99.0
+      user_item_seconds_per_week    372.098252        83.6
+                      category_4    310.356256        21.8
+                      category_6    271.069516        18.2
+                      category_8    230.205307         6.2
+     E168_recent_per_target_week    211.453130        40.6
+                      category_1     98.985168        16.8
+                 is_new_for_user     78.028058         4.8
+            airs_first_two_weeks     71.789868        18.0
+                      category_2     54.686348        11.6
+                      category_0      0.000000         0.0
+                      category_7      0.000000         0.0
+
+FINAL submission_v7_2.csv: {"config": {"candidate_size": 200, "extras": ["candidate_rank", "decay4", "decay8", "halves"], "label": "binary", "params": {"learning_rate": 0.05, "min_child_samples": 20, "num_leaves": 63}, "seeds": [12345, 12346, 12347, 12348, 12349]}, "id": "24e2ce86e6d87497ac35", "iterations": {"12345": 106, "12346": 180, "12347": 142, "12348": 139, "12349": 165}, "map_fold10": 0.7318255208333333, "map_fold5": 0.6463460183227626, "mean_map": 0.6890857695780479}
+  refit seed 12345 on 100% of stacked queries, trees=106
+  refit seed 12346 on 100% of stacked queries, trees=180
+  refit seed 12347 on 100% of stacked queries, trees=142
+  refit seed 12348 on 100% of stacked queries, trees=139
+  refit seed 12349 on 100% of stacked queries, trees=165
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v7_2.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 139
+    pool_size: 6636
+FEATURE IMPORTANCES
+                         feature     mean_gain  mean_split
+                   exposure_rank 406304.183647       486.2
+              E48_candidate_rank 252314.241153       291.8
+      user_item_airings_per_week  67697.901147       179.8
+         user_item_days_per_week  61709.408484       257.4
+       popularity_users_per_week  44924.293590       449.4
+    global_item_seconds_per_week  22426.558040       360.6
+                        ppr_rank  19539.326076       410.4
+       E168_second_half_per_week  19420.068926       295.8
+         user_item_channel_share  17797.044211      1059.2
+         target_airings_per_week  15797.810096       933.2
+            target_week_coverage  12374.079595       288.4
+             user_category_share   8734.685508       630.0
+                       ppr_score   6754.942802       376.6
+         target_airtime_per_week   5981.851886       681.8
+                      category_3   5231.165750        97.6
+            airtime_ratio_weekly   3940.603425       548.4
+     E168_decay4_per_target_week   3771.683901       302.2
+last2weeks_item_seconds_per_week   3309.205389       268.8
+  exposure_score_per_target_week   3227.701091       366.6
+                      category_5   1959.802687        67.0
+     E168_decay8_per_target_week   1208.652280        68.0
+     last4weeks_seconds_per_week    873.819006        94.8
+        E168_first_half_per_week    771.129052       161.8
+      user_item_seconds_per_week    763.587141       145.6
+                      category_4    517.252248        43.6
+     E168_recent_per_target_week    403.808972        73.2
+                      category_6    386.198960        29.2
+                      category_8    264.327643        12.2
+                      category_1    196.190024        36.6
+                 is_new_for_user    138.562927         8.4
+                      category_2    131.972200        26.2
+            airs_first_two_weeks    118.152816        26.0
+                      category_0      0.000000         0.0
+                      category_7      0.000000         0.0
+Completed in 5060.7s; designated final remains v6_3 pending Kaggle results

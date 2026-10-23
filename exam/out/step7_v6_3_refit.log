@@ -1,0 +1,458 @@
+Final-only v6_3 build; rebuild/cache missing features and reuse saved trees.
+
+Run from exam/: .venv/bin/python -u src/step7_refit_all_together.py
+Logs live to out/step7_v6_3_refit.log and stdout. No candidate-recall search,
+ablations, user-split changes or early stopping are run. Caches under
+out/cache/step7/{fold10,fold5,final} are reusable by Step 8. Existing feature
+caches are loaded, so subsequent runs do not recompute them. Intermediate
+window aggregates are also cached to make interrupted rebuilds resumable.
+
+POST-HOC selection: all_together was chosen after inspecting fold5 results,
+not by the original fold10 criterion. Tree counts still come from the saved
+fold10 early stopping. This is additional validation-informed selection,
+not a new untouched-holdout estimate. No Kaggle scores are used by this job.
+The current designated final remains submission_v6_1.csv.
+
+POST-HOC LATER-FOLD SELECTION:
+{
+  "file": "submission_v6_3.csv",
+  "recipe": "all_together",
+  "config": {
+    "size": 200,
+    "scale": true,
+    "stack": true,
+    "new": true,
+    "seeds": [
+      12345,
+      12346,
+      12347,
+      12348,
+      12349
+    ]
+  },
+  "seed_iterations": {
+    "12345": 150,
+    "12346": 112,
+    "12347": 132,
+    "12348": 173,
+    "12349": 275
+  },
+  "selection_metric": "later fold5 all-watched MAP@5",
+  "selection_is_post_hoc": true,
+  "selection_note": "Chosen by the user after seeing the fold5 column, not by fold10; fold5 is consequently not an untouched holdout for this selection.",
+  "selection_rationale": "Later fold5 (26-30) is closer in time to the test weeks 31-42.",
+  "tree_count_source": "Saved Step 7 fold10 NDCG@5 early stopping; not retuned on fold5",
+  "fold5_all_together": 0.6401752995066948,
+  "fold5_previous_v5": 0.6176885130373503,
+  "fold5_delta": 0.022486786469344544,
+  "fold10_all_together": 0.7310917245370371,
+  "fold10_previous_v5": 0.7317445023148148,
+  "designated_final_so_far": "submission_v6_1.csv"
+}
+LightGBM 4.7.0; saved seed/tree counts are fixed, no early stopping
+MISSING FEATURE CACHES: fold10, fold5, final
+  schedule 11-20: 115,316 distinct labelled broadcasts, clipped to [2020-03-09, 2020-05-18)
+  schedule 21-30: 121,238 distinct labelled broadcasts, clipped to [2020-05-18, 2020-07-27)
+Rebuilding raw window aggregates once; no model-selection stage is run
+  raw chunk 1: 200,000 views, 103,056 overlaps; 4 windows accumulated
+  raw chunk 2: 200,000 views, 106,818 overlaps; 4 windows accumulated
+  raw chunk 3: 200,000 views, 110,308 overlaps; 4 windows accumulated
+  raw chunk 4: 200,000 views, 113,918 overlaps; 4 windows accumulated
+  raw chunk 5: 200,000 views, 107,684 overlaps; 4 windows accumulated
+  raw chunk 6: 200,000 views, 114,738 overlaps; 4 windows accumulated
+  raw chunk 7: 200,000 views, 116,201 overlaps; 4 windows accumulated
+  raw chunk 8: 200,000 views, 111,548 overlaps; 4 windows accumulated
+  raw chunk 9: 200,000 views, 120,149 overlaps; 4 windows accumulated
+  raw chunk 10: 200,000 views, 113,306 overlaps; 4 windows accumulated
+  raw chunk 11: 200,000 views, 123,478 overlaps; 4 windows accumulated
+  raw chunk 12: 200,000 views, 112,094 overlaps; 4 windows accumulated
+  raw chunk 13: 200,000 views, 115,969 overlaps; 4 windows accumulated
+  raw chunk 14: 200,000 views, 115,588 overlaps; 4 windows accumulated
+  raw chunk 15: 200,000 views, 114,401 overlaps; 4 windows accumulated
+  raw chunk 16: 200,000 views, 131,799 overlaps; 4 windows accumulated
+  raw chunk 17: 200,000 views, 137,523 overlaps; 4 windows accumulated
+  raw chunk 18: 200,000 views, 150,169 overlaps; 4 windows accumulated
+  raw chunk 19: 200,000 views, 148,109 overlaps; 4 windows accumulated
+  raw chunk 20: 200,000 views, 162,024 overlaps; 4 windows accumulated
+  raw chunk 21: 200,000 views, 164,549 overlaps; 4 windows accumulated
+  raw chunk 22: 200,000 views, 157,428 overlaps; 4 windows accumulated
+  raw chunk 23: 200,000 views, 160,464 overlaps; 4 windows accumulated
+  raw chunk 24: 200,000 views, 143,691 overlaps; 4 windows accumulated
+  raw chunk 25: 200,000 views, 140,607 overlaps; 4 windows accumulated
+  raw chunk 26: 200,000 views, 159,358 overlaps; 4 windows accumulated
+  raw chunk 27: 200,000 views, 161,089 overlaps; 4 windows accumulated
+  raw chunk 28: 200,000 views, 163,162 overlaps; 4 windows accumulated
+  raw chunk 29: 200,000 views, 151,008 overlaps; 4 windows accumulated
+  raw chunk 30: 21,987 views, 15,800 overlaps; 4 windows accumulated
+  train10: 856,917 user/item pairs, 1,823,893 watched broadcasts
+  train15: 1,090,986 user/item pairs, 2,361,714 watched broadcasts
+  train20: 1,370,917 user/item pairs, 3,012,767 watched broadcasts
+  label5: 398,586 user/item pairs, 651,317 watched broadcasts
+SAVED WINDOW CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/windows/train10
+SAVED WINDOW CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/windows/train15
+SAVED WINDOW CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/windows/train20
+SAVED WINDOW CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/windows/label5
+
+Building target-airing matrix from schedule 21-30 only
+  schedule chunk 1: 42,483 labelled airings, 72,329 hour segments
+  schedule chunk 2: 16,727 labelled airings, 29,390 hour segments
+  schedule chunk 3: 16,495 labelled airings, 24,325 hour segments
+  schedule chunk 4: 17,950 labelled airings, 32,209 hour segments
+  schedule chunk 5: 11,562 labelled airings, 24,128 hour segments
+  schedule chunk 6: 16,288 labelled airings, 29,540 hour segments
+  A168 (6363, 31584), nnz=98,409; target seconds=409,495,080
+
+Building habits: [2020-03-09, 2020-05-18), 10 weeks; recent cutoff 2020-04-20 00:00:00
+  All raw channel-view seconds retained, including tv_show_id=0 airtime; no label join/filter.
+  raw-view chunk 1: 197,601 eligible views, 215,035 hour segments
+  raw-view chunk 2: 198,044 eligible views, 211,200 hour segments
+  raw-view chunk 3: 197,996 eligible views, 216,734 hour segments
+  raw-view chunk 4: 198,026 eligible views, 214,998 hour segments
+  raw-view chunk 5: 197,991 eligible views, 215,668 hour segments
+  raw-view chunk 6: 198,224 eligible views, 216,602 hour segments
+  raw-view chunk 7: 198,374 eligible views, 214,445 hour segments
+  raw-view chunk 8: 198,441 eligible views, 217,275 hour segments
+  raw-view chunk 9: 198,583 eligible views, 217,904 hour segments
+  raw-view chunk 10: 198,648 eligible views, 215,970 hour segments
+  raw-view chunk 11: 198,595 eligible views, 215,359 hour segments
+  raw-view chunk 12: 198,838 eligible views, 216,181 hour segments
+  raw-view chunk 13: 198,890 eligible views, 212,465 hour segments
+  raw-view chunk 14: 198,851 eligible views, 218,139 hour segments
+  raw-view chunk 15: 199,133 eligible views, 215,744 hour segments
+  raw-view chunk 16: 199,257 eligible views, 216,757 hour segments
+  raw-view chunk 17: 199,402 eligible views, 216,589 hour segments
+  raw-view chunk 18: 199,345 eligible views, 243,667 hour segments
+  raw-view chunk 19: 199,526 eligible views, 246,744 hour segments
+  raw-view chunk 20: 145,102 eligible views, 187,693 hour segments
+  raw-view chunk 21: no eligible training rows
+  raw-view chunk 22: no eligible training rows
+  raw-view chunk 23: no eligible training rows
+  raw-view chunk 24: no eligible training rows
+  raw-view chunk 25: no eligible training rows
+  raw-view chunk 26: no eligible training rows
+  raw-view chunk 27: no eligible training rows
+  raw-view chunk 28: no eligible training rows
+  raw-view chunk 29: no eligible training rows
+  raw-view chunk 30: no eligible training rows
+  retained context seconds=4,158,899,004; seconds on channels without target labelled airings=734,715,741 (cannot contribute exposure)
+  H 168_uniform: (4799, 31584), nnz=2,424,228, zero-habit users=44
+  H 168_recent: (4799, 31584), nnz=2,424,228, zero-habit users=44
+  H 48_uniform: (4799, 9024), nnz=1,517,615, zero-habit users=44
+  H 48_recent: (4799, 9024), nnz=1,517,615, zero-habit users=44
+  phase 21-30: 4,799 users, 6,363 candidates; 56 item-history cold users get popularity for all methods
+
+PREPARE fold10: 10 training weeks -> 10 target weeks
+  PPR alpha=0.5: graph n=7732 (users=4834, items=2898), scored users=4,743, chunk=500, max_iter=30, tol=1e-06
+    chunk 1 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 2 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 3 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 4 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 5 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 6 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 7 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 8 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 9 (500 users) converged at iter 19, diff=9.54e-07, 2.1s
+    chunk 10 (243 users) converged at iter 19, diff=9.54e-07, 1.0s
+  PPR alpha=0.5 runtime: 66.1s
+  E48 features: users 1-250
+  E48 features: users 251-500
+  E48 features: users 501-750
+  E48 features: users 751-1,000
+  E48 features: users 1,001-1,250
+  E48 features: users 1,251-1,500
+  E48 features: users 1,501-1,750
+  E48 features: users 1,751-2,000
+  E48 features: users 2,001-2,250
+  E48 features: users 2,251-2,500
+  E48 features: users 2,501-2,750
+  E48 features: users 2,751-3,000
+  E48 features: users 3,001-3,250
+  E48 features: users 3,251-3,500
+  E48 features: users 3,501-3,750
+  E48 features: users 3,751-4,000
+  E48 features: users 4,001-4,250
+  E48 features: users 4,251-4,500
+  E48 features: users 4,501-4,750
+  E48 features: users 4,751-4,799
+  feature users 250/4,799, candidates 96,572
+  feature users 500/4,799, candidates 193,541
+  feature users 750/4,799, candidates 289,114
+  feature users 1,000/4,799, candidates 385,608
+  feature users 1,250/4,799, candidates 482,701
+  feature users 1,500/4,799, candidates 579,845
+  feature users 1,750/4,799, candidates 676,220
+  feature users 2,000/4,799, candidates 773,425
+  feature users 2,250/4,799, candidates 869,631
+  feature users 2,500/4,799, candidates 966,207
+  feature users 2,750/4,799, candidates 1,062,765
+  feature users 3,000/4,799, candidates 1,158,576
+  feature users 3,250/4,799, candidates 1,256,079
+  feature users 3,500/4,799, candidates 1,353,907
+  feature users 3,750/4,799, candidates 1,451,196
+  feature users 4,000/4,799, candidates 1,547,723
+  feature users 4,250/4,799, candidates 1,644,596
+  feature users 4,500/4,799, candidates 1,741,764
+  feature users 4,750/4,799, candidates 1,837,754
+  feature users 4,799/4,799, candidates 1,856,655
+  candidate feature matrix: (1856655, 24), nnz=22,169,628
+  new channel/time features: users 1-250
+  new channel/time features: users 251-500
+  new channel/time features: users 501-750
+  new channel/time features: users 751-1,000
+  new channel/time features: users 1,001-1,250
+  new channel/time features: users 1,251-1,500
+  new channel/time features: users 1,501-1,750
+  new channel/time features: users 1,751-2,000
+  new channel/time features: users 2,001-2,250
+  new channel/time features: users 2,251-2,500
+  new channel/time features: users 2,501-2,750
+  new channel/time features: users 2,751-3,000
+  new channel/time features: users 3,001-3,250
+  new channel/time features: users 3,251-3,500
+  new channel/time features: users 3,501-3,750
+  new channel/time features: users 3,751-4,000
+  new channel/time features: users 4,001-4,250
+  new channel/time features: users 4,251-4,500
+  new channel/time features: users 4,501-4,750
+  new channel/time features: users 4,751-4,799
+  candidate recall of selected target: mean 0.533095; positive rows 217,231/1,856,655; no positive injection
+SAVED FEATURE CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/fold10
+
+Building habits: [2020-03-09, 2020-06-22), 15 weeks; recent cutoff 2020-05-25 00:00:00
+  All raw channel-view seconds retained, including tv_show_id=0 airtime; no label join/filter.
+  raw-view chunk 1: 196,151 eligible views, 213,355 hour segments
+  raw-view chunk 2: 196,718 eligible views, 209,692 hour segments
+  raw-view chunk 3: 196,457 eligible views, 214,954 hour segments
+  raw-view chunk 4: 196,827 eligible views, 213,536 hour segments
+  raw-view chunk 5: 196,786 eligible views, 214,026 hour segments
+  raw-view chunk 6: 196,931 eligible views, 215,074 hour segments
+  raw-view chunk 7: 197,098 eligible views, 212,987 hour segments
+  raw-view chunk 8: 197,329 eligible views, 216,007 hour segments
+  raw-view chunk 9: 197,572 eligible views, 216,654 hour segments
+  raw-view chunk 10: 197,414 eligible views, 214,605 hour segments
+  raw-view chunk 11: 197,397 eligible views, 214,006 hour segments
+  raw-view chunk 12: 197,676 eligible views, 214,803 hour segments
+  raw-view chunk 13: 197,838 eligible views, 211,313 hour segments
+  raw-view chunk 14: 197,704 eligible views, 216,777 hour segments
+  raw-view chunk 15: 197,872 eligible views, 214,276 hour segments
+  raw-view chunk 16: 198,157 eligible views, 215,512 hour segments
+  raw-view chunk 17: 198,431 eligible views, 215,437 hour segments
+  raw-view chunk 18: 198,570 eligible views, 242,206 hour segments
+  raw-view chunk 19: 198,633 eligible views, 245,172 hour segments
+  raw-view chunk 20: 198,626 eligible views, 260,301 hour segments
+  raw-view chunk 21: 198,895 eligible views, 261,936 hour segments
+  raw-view chunk 22: 199,070 eligible views, 259,294 hour segments
+  raw-view chunk 23: 199,213 eligible views, 261,681 hour segments
+  raw-view chunk 24: 178,331 eligible views, 207,809 hour segments
+  raw-view chunk 25: no eligible training rows
+  raw-view chunk 26: no eligible training rows
+  raw-view chunk 27: no eligible training rows
+  raw-view chunk 28: no eligible training rows
+  raw-view chunk 29: no eligible training rows
+  raw-view chunk 30: no eligible training rows
+  retained context seconds=5,527,032,792; seconds on channels without target labelled airings=994,485,702 (cannot contribute exposure)
+  H 168_uniform: (4735, 31248), nnz=2,835,198, zero-habit users=30
+  H 168_recent: (4735, 31248), nnz=2,835,198, zero-habit users=30
+  H 48_uniform: (4735, 8928), nnz=1,713,847, zero-habit users=30
+  H 48_recent: (4735, 8928), nnz=1,713,847, zero-habit users=30
+
+PREPARE fold5: 15 training weeks -> 5 target weeks
+  PPR alpha=0.5: graph n=8555 (users=4853, items=3702), scored users=4,698, chunk=500, max_iter=30, tol=1e-06
+    chunk 1 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 2 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 3 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 4 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 5 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 6 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 7 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 8 (500 users) converged at iter 19, diff=9.54e-07, 2.7s
+    chunk 9 (500 users) converged at iter 19, diff=9.54e-07, 2.6s
+    chunk 10 (198 users) converged at iter 19, diff=9.54e-07, 1.0s
+  PPR alpha=0.5 runtime: 72.6s
+  E48 features: users 1-250
+  E48 features: users 251-500
+  E48 features: users 501-750
+  E48 features: users 751-1,000
+  E48 features: users 1,001-1,250
+  E48 features: users 1,251-1,500
+  E48 features: users 1,501-1,750
+  E48 features: users 1,751-2,000
+  E48 features: users 2,001-2,250
+  E48 features: users 2,251-2,500
+  E48 features: users 2,501-2,750
+  E48 features: users 2,751-3,000
+  E48 features: users 3,001-3,250
+  E48 features: users 3,251-3,500
+  E48 features: users 3,501-3,750
+  E48 features: users 3,751-4,000
+  E48 features: users 4,001-4,250
+  E48 features: users 4,251-4,500
+  E48 features: users 4,501-4,735
+  feature users 250/4,735, candidates 96,744
+  feature users 500/4,735, candidates 193,553
+  feature users 750/4,735, candidates 289,237
+  feature users 1,000/4,735, candidates 385,297
+  feature users 1,250/4,735, candidates 482,285
+  feature users 1,500/4,735, candidates 578,863
+  feature users 1,750/4,735, candidates 675,259
+  feature users 2,000/4,735, candidates 772,795
+  feature users 2,250/4,735, candidates 868,480
+  feature users 2,500/4,735, candidates 964,564
+  feature users 2,750/4,735, candidates 1,061,248
+  feature users 3,000/4,735, candidates 1,157,169
+  feature users 3,250/4,735, candidates 1,254,534
+  feature users 3,500/4,735, candidates 1,351,657
+  feature users 3,750/4,735, candidates 1,448,968
+  feature users 4,000/4,735, candidates 1,545,639
+  feature users 4,250/4,735, candidates 1,642,282
+  feature users 4,500/4,735, candidates 1,738,657
+  feature users 4,735/4,735, candidates 1,829,523
+  candidate feature matrix: (1829523, 24), nnz=22,085,217
+  new channel/time features: users 1-250
+  new channel/time features: users 251-500
+  new channel/time features: users 501-750
+  new channel/time features: users 751-1,000
+  new channel/time features: users 1,001-1,250
+  new channel/time features: users 1,251-1,500
+  new channel/time features: users 1,501-1,750
+  new channel/time features: users 1,751-2,000
+  new channel/time features: users 2,001-2,250
+  new channel/time features: users 2,251-2,500
+  new channel/time features: users 2,501-2,750
+  new channel/time features: users 2,751-3,000
+  new channel/time features: users 3,001-3,250
+  new channel/time features: users 3,251-3,500
+  new channel/time features: users 3,501-3,750
+  new channel/time features: users 3,751-4,000
+  new channel/time features: users 4,001-4,250
+  new channel/time features: users 4,251-4,500
+  new channel/time features: users 4,501-4,735
+  candidate recall of selected target: mean 0.633409; positive rows 161,164/1,829,523; no positive injection
+SAVED FEATURE CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/fold5
+
+Building target-airing matrix from schedule 31-42 only
+  schedule chunk 1: 40,125 labelled airings, 70,776 hour segments
+  schedule chunk 2: 24,328 labelled airings, 40,076 hour segments
+  schedule chunk 3: 20,872 labelled airings, 31,196 hour segments
+  schedule chunk 4: 17,471 labelled airings, 27,492 hour segments
+  schedule chunk 5: 9,999 labelled airings, 22,411 hour segments
+  schedule chunk 6: 11,979 labelled airings, 24,261 hour segments
+  schedule chunk 7: 20,000 labelled airings, 36,722 hour segments
+  A168 (6636, 32088), nnz=113,758; target seconds=487,595,880
+
+Building habits: [2020-03-09, 2020-07-27), 20 weeks; recent cutoff 2020-06-29 00:00:00
+  All raw channel-view seconds retained, including tv_show_id=0 airtime; no label join/filter.
+  raw-view chunk 1: 71,299 eligible views, 74,959 hour segments
+  raw-view chunk 2: 70,232 eligible views, 72,800 hour segments
+  raw-view chunk 3: 71,898 eligible views, 76,047 hour segments
+  raw-view chunk 4: 71,741 eligible views, 76,140 hour segments
+  raw-view chunk 5: 72,941 eligible views, 77,164 hour segments
+  raw-view chunk 6: 72,846 eligible views, 77,533 hour segments
+  raw-view chunk 7: 72,868 eligible views, 76,782 hour segments
+  raw-view chunk 8: 77,749 eligible views, 83,401 hour segments
+  raw-view chunk 9: 72,658 eligible views, 77,623 hour segments
+  raw-view chunk 10: 72,656 eligible views, 76,707 hour segments
+  raw-view chunk 11: 72,204 eligible views, 76,339 hour segments
+  raw-view chunk 12: 73,125 eligible views, 77,528 hour segments
+  raw-view chunk 13: 73,599 eligible views, 76,770 hour segments
+  raw-view chunk 14: 74,199 eligible views, 79,300 hour segments
+  raw-view chunk 15: 71,459 eligible views, 75,034 hour segments
+  raw-view chunk 16: 71,843 eligible views, 76,403 hour segments
+  raw-view chunk 17: 70,242 eligible views, 73,804 hour segments
+  raw-view chunk 18: 74,008 eligible views, 85,072 hour segments
+  raw-view chunk 19: 73,950 eligible views, 86,106 hour segments
+  raw-view chunk 20: 74,765 eligible views, 90,346 hour segments
+  raw-view chunk 21: 78,672 eligible views, 94,947 hour segments
+  raw-view chunk 22: 78,828 eligible views, 94,733 hour segments
+  raw-view chunk 23: 79,763 eligible views, 96,934 hour segments
+  raw-view chunk 24: 82,226 eligible views, 91,016 hour segments
+  raw-view chunk 25: 83,389 eligible views, 92,283 hour segments
+  raw-view chunk 26: 75,696 eligible views, 92,782 hour segments
+  raw-view chunk 27: 75,802 eligible views, 91,748 hour segments
+  raw-view chunk 28: 77,366 eligible views, 93,014 hour segments
+  raw-view chunk 29: 76,921 eligible views, 88,444 hour segments
+  raw-view chunk 30: 8,368 eligible views, 8,557 hour segments
+  retained context seconds=2,422,888,364; seconds on channels without target labelled airings=508,876,571 (cannot contribute exposure)
+  H 168_uniform: (1260, 32088), nnz=1,152,783, zero-habit users=1
+  H 168_recent: (1260, 32088), nnz=1,152,783, zero-habit users=1
+  H 48_uniform: (1260, 9168), nnz=660,334, zero-habit users=1
+  H 48_recent: (1260, 9168), nnz=660,334, zero-habit users=1
+  phase 31-42: 1,260 users, 6,636 candidates; 2 item-history cold users get popularity for all methods
+  schedule 31-42: 144,517 distinct labelled broadcasts, clipped to [2020-07-27, 2020-10-19)
+
+PREPARE final: 20 training weeks -> 12 target weeks
+  PPR alpha=0.5: graph n=9158 (users=4890, items=4268), scored users=1,258, chunk=500, max_iter=30, tol=1e-06
+    chunk 1 (500 users) converged at iter 19, diff=9.54e-07, 3.4s
+    chunk 2 (500 users) converged at iter 19, diff=9.54e-07, 3.5s
+    chunk 3 (258 users) converged at iter 19, diff=9.54e-07, 1.7s
+  PPR alpha=0.5 runtime: 22.1s
+  E48 features: users 1-250
+  E48 features: users 251-500
+  E48 features: users 501-750
+  E48 features: users 751-1,000
+  E48 features: users 1,001-1,250
+  E48 features: users 1,251-1,260
+  feature users 250/1,260, candidates 103,385
+  feature users 500/1,260, candidates 206,048
+  feature users 750/1,260, candidates 309,716
+  feature users 1,000/1,260, candidates 413,811
+  feature users 1,250/1,260, candidates 517,662
+  feature users 1,260/1,260, candidates 521,642
+  candidate feature matrix: (521642, 24), nnz=6,645,545
+  new channel/time features: users 1-250
+  new channel/time features: users 251-500
+  new channel/time features: users 501-750
+  new channel/time features: users 751-1,000
+  new channel/time features: users 1,001-1,250
+  new channel/time features: users 1,251-1,260
+  final inference features: no target viewing or relevance labels consumed
+SAVED FEATURE CACHE: /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step7/final
+
+FINAL rank=3, recipe=all_together: {"new": true, "scale": true, "seeds": [12345, 12346, 12347, 12348, 12349], "size": 200, "stack": true}
+  refit seed 12345 on 100% of queries, trees=150
+  refit seed 12346 on 100% of queries, trees=112
+  refit seed 12347 on 100% of queries, trees=132
+  refit seed 12348 on 100% of queries, trees=173
+  refit seed 12349 on 100% of queries, trees=275
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v6_3.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 131
+    pool_size: 6636
+FEATURE IMPORTANCES submission_v6_3.csv
+                         feature     mean_gain  mean_split
+                   exposure_rank 567155.505467       400.4
+                        ppr_rank  84154.433936       235.4
+      user_item_airings_per_week  69772.860624       127.8
+         user_item_days_per_week  66353.950969       189.4
+       popularity_users_per_week  38161.146129       280.0
+            target_week_coverage  19757.882740       214.6
+         target_airings_per_week  19606.089456       564.4
+         user_item_channel_share  18634.684301       580.8
+    global_item_seconds_per_week  17356.356568       204.2
+     E168_recent_per_target_week  15537.474726       226.4
+  exposure_score_per_target_week  13511.928553       219.4
+             user_category_share   7690.429482       323.4
+                       ppr_score   6979.213808       187.0
+                      category_3   5462.801740        71.6
+         target_airtime_per_week   5125.591184       412.8
+            airtime_ratio_weekly   3907.025730       345.8
+last2weeks_item_seconds_per_week   3350.579920       153.2
+                      category_5    983.165052        35.4
+     last4weeks_seconds_per_week    644.890265        58.2
+      user_item_seconds_per_week    545.736842        78.2
+            airs_first_two_weeks    454.397404        46.0
+                      category_4    436.688138        26.2
+                      category_8    268.951398        11.4
+                 is_new_for_user    228.308891         7.8
+                      category_1    189.741354        26.6
+                      category_2     90.225080        16.0
+                      category_6     69.541264         9.6
+                      category_0      0.000000         0.0
+                      category_7      0.000000         0.0
+Completed in 618.8s; v6_1 remains the designated final

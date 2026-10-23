@@ -1,0 +1,35 @@
+[
+  {
+    "file": "submission_v4_1.csv",
+    "method": "rrf_E_48_uniform_v3_wE=0.5",
+    "config": {
+      "kind": "rrf",
+      "variant": "48_uniform",
+      "weight": 0.5
+    },
+    "validation_map_all": 0.6789544696811836,
+    "validation_map_top5": 0.23742776272834618
+  },
+  {
+    "file": "submission_v4_2.csv",
+    "method": "rrf_E_48_uniform_v3_wE=1.0",
+    "config": {
+      "kind": "rrf",
+      "variant": "48_uniform",
+      "weight": 1.0
+    },
+    "validation_map_all": 0.6777824083721146,
+    "validation_map_top5": 0.24770114144150404
+  },
+  {
+    "file": "submission_v4_3.csv",
+    "method": "rrf_E_48_recent_v3_wE=0.5",
+    "config": {
+      "kind": "rrf",
+      "variant": "48_recent",
+      "weight": 0.5
+    },
+    "validation_map_all": 0.6775429487624737,
+    "validation_map_top5": 0.23838062327799775
+  }
+]

@@ -1,0 +1,91 @@
+[
+  {
+    "file": "submission_v6_1.csv",
+    "recipe": "new_features_only",
+    "config": {
+      "size": 50,
+      "scale": false,
+      "stack": false,
+      "new": true,
+      "seeds": [
+        12345
+      ]
+    },
+    "seed_iterations": {
+      "12345": 150
+    },
+    "feature_names": [
+      "user_item_seconds",
+      "user_item_airings",
+      "user_item_days",
+      "last4weeks_seconds",
+      "ppr_score",
+      "ppr_rank",
+      "exposure_score",
+      "exposure_rank",
+      "popularity_users",
+      "global_item_seconds",
+      "target_airtime",
+      "target_airings",
+      "airtime_ratio",
+      "user_category_share",
+      "is_new_for_user",
+      "category_0",
+      "category_1",
+      "category_2",
+      "category_3",
+      "category_4",
+      "category_5",
+      "category_6",
+      "category_7",
+      "category_8",
+      "user_item_channel_share",
+      "E168_recent",
+      "airs_first_two_weeks",
+      "target_distinct_weeks",
+      "last2weeks_item_seconds"
+    ]
+  },
+  {
+    "file": "submission_v6_2.csv",
+    "recipe": "candidates_only",
+    "config": {
+      "size": 200,
+      "scale": false,
+      "stack": false,
+      "new": false,
+      "seeds": [
+        12345
+      ]
+    },
+    "seed_iterations": {
+      "12345": 163
+    },
+    "feature_names": [
+      "user_item_seconds",
+      "user_item_airings",
+      "user_item_days",
+      "last4weeks_seconds",
+      "ppr_score",
+      "ppr_rank",
+      "exposure_score",
+      "exposure_rank",
+      "popularity_users",
+      "global_item_seconds",
+      "target_airtime",
+      "target_airings",
+      "airtime_ratio",
+      "user_category_share",
+      "is_new_for_user",
+      "category_0",
+      "category_1",
+      "category_2",
+      "category_3",
+      "category_4",
+      "category_5",
+      "category_6",
+      "category_7",
+      "category_8"
+    ]
+  }
+]

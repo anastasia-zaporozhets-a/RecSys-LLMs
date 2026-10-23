@@ -1,0 +1,25 @@
+method,params,map_top5,map_all,runtime,fallback
+B2_history(beta=0.5),"train overlap_seconds x ratio^0.5, pool-restricted",0.24758300340348685,0.5617734597485587,0.6519408329986618,56
+"M3_rrf(a=0.3,w=1.0/0.0/0.0)",RRF(k=60) of PPR + history + popularity rankings,0.2470097937070223,0.5799826352712371,1.4312014579991228,56
+"M1_PPR(alpha=0.3,beta=0.0)","log1p(sec/60) edges, own-programme restart, x ratio^0.0",0.2470097937070223,0.5799826352712371,289.0566138329996,56
+"M3_rrf(a=0.3,w=1.0/2.0/0.5)",RRF(k=60) of PPR + history + popularity rankings,0.24458324650968954,0.6111568382301868,1.8077059999995981,56
+"M1_PPR(alpha=0.2,beta=0.0)","log1p(sec/60) edges, own-programme restart, x ratio^0.0",0.2442059688361001,0.5642066634252506,166.8450534170006,56
+"M3_hybrid_hist_first(alpha=0.3,beta=0.0,n_hist=2)","B2 history takes the first 2 slots, PPR fills the rest",0.24419485540969182,0.57330647588618,28.122328542001924,56
+"M3_rrf(a=0.3,w=1.0/1.0/0.0)",RRF(k=60) of PPR + history + popularity rankings,0.2438973397235535,0.5653455581023824,1.4684836660017027,56
+"M3_hybrid_hist_first(alpha=0.3,beta=0.0,n_hist=3)","B2 history takes the first 3 slots, PPR fills the rest",0.2434659998610822,0.5687351531569077,28.127231124999525,56
+"M3_rrf(a=0.3,w=2.0/1.0/0.5)",RRF(k=60) of PPR + history + popularity rankings,0.24345592831839968,0.6162127526568035,1.637474041999667,56
+"M1_PPR(alpha=0.1,beta=0.0)","log1p(sec/60) edges, own-programme restart, x ratio^0.0",0.24179829131068975,0.55371813572272,65.06321383400063,56
+B2_history(beta=0.0),"train overlap_seconds x ratio^0.0, pool-restricted",0.24103563242342155,0.5501153017989859,0.3604562500004249,56
+"M3_rrf(a=0.3,w=1.0/1.0/0.5)",RRF(k=60) of PPR + history + popularity rankings,0.238417668032692,0.6245606144798684,1.8145436250015337,56
+B2_history(beta=1.0),"train overlap_seconds x ratio^1.0, pool-restricted",0.22621952490102107,0.5113997707855803,0.6894795419975708,56
+"M3_rrf(a=0.3,w=1.0/0.0/0.5)",RRF(k=60) of PPR + history + popularity rankings,0.21950962005973468,0.6457484198096826,1.6039360830000078,56
+"M3_hybrid_hist_first(alpha=0.3,beta=0.5,n_hist=3)","B2 history takes the first 3 slots, PPR fills the rest",0.2160411891366257,0.4680645273320831,30.760256333000143,56
+"M3_hybrid_hist_first(alpha=0.3,beta=0.5,n_hist=2)","B2 history takes the first 2 slots, PPR fills the rest",0.19285447199648076,0.4193370725382603,30.746391791999486,56
+"M3_hybrid_hist_first(alpha=0.3,beta=1.0,n_hist=3)","B2 history takes the first 3 slots, PPR fills the rest",0.1899674700747841,0.405788821745271,30.75795825000023,56
+"M3_hybrid_hist_first(alpha=0.3,beta=1.0,n_hist=2)","B2 history takes the first 2 slots, PPR fills the rest",0.1584833067074159,0.3423313306012827,30.75084274999972,56
+"M1_PPR(alpha=0.3,beta=0.5)","log1p(sec/60) edges, own-programme restart, x ratio^0.5",0.10889218818735384,0.303768898613137,321.44883458299955,56
+"M1_PPR(alpha=0.2,beta=0.5)","log1p(sec/60) edges, own-programme restart, x ratio^0.5",0.10071479011831169,0.28584780394063575,191.08824687499873,56
+"M1_PPR(alpha=0.1,beta=0.5)","log1p(sec/60) edges, own-programme restart, x ratio^0.5",0.09574014262230557,0.2762624736634947,78.0745838340008,56
+"M1_PPR(alpha=0.3,beta=1.0)","log1p(sec/60) edges, own-programme restart, x ratio^1.0",0.03662823273367137,0.16605102914959136,352.6199542909999,56
+"M1_PPR(alpha=0.2,beta=1.0)","log1p(sec/60) edges, own-programme restart, x ratio^1.0",0.03541200713111528,0.16291009701095135,214.131069209001,56
+"M1_PPR(alpha=0.1,beta=1.0)","log1p(sec/60) edges, own-programme restart, x ratio^1.0",0.03490426246208701,0.1610395684286078,90.24010762500257,56

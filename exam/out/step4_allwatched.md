@@ -1,0 +1,111 @@
+
+==============================================================================================================
+STEP 4 - SELECT BY VALIDATION MAP@5 AGAINST ALL WATCHED PROGRAMMES
+==============================================================================================================
+Environment : Python 3.14.0 macOS-26.6.2-arm64-arm-64bit-Mach-O; numpy 2.5.4; pandas 3.0.6
+Seed        : 12345
+Decision    : map_all is the selection metric; map_top5 is diagnostic only.
+Kaggle      : PPR a=0.3 0.30721/0.27476 public/private; popularity 0.29788/0.29442; history+airtime 0.28189/0.25260; history 0.28079/0.25013.
+Validation  : 4,799 users; pool 6,363; cold start 56
+
+==============================================================================================================
+PPR
+==============================================================================================================
+  Computing PPR alpha=0.5 ...
+  PPR(alpha=0.5)                                            MAP@5(all)=0.618347  MAP@5(top-5)=0.240571  fallback=56  76.6s
+  Computing PPR alpha=0.7 ...
+  PPR(alpha=0.7)                                            MAP@5(all)=0.645481  MAP@5(top-5)=0.213805  fallback=56  87.2s
+  Computing PPR alpha=0.85 ...
+  PPR(alpha=0.85)                                           MAP@5(all)=0.642237  MAP@5(top-5)=0.182234  fallback=56  88.7s
+  Computing PPR alpha=0.95 ...
+  PPR(alpha=0.95)                                           MAP@5(all)=0.622860  MAP@5(top-5)=0.160921  fallback=56  88.5s
+
+==============================================================================================================
+RRF(k=60) - PPR + POPULARITY
+==============================================================================================================
+  RRF_ppr_pop(alpha=0.5,weights=1.0/0.25)                   MAP@5(all)=0.646933  MAP@5(top-5)=0.220675  fallback=56  0.4s
+  RRF_ppr_pop(alpha=0.5,weights=1.0/0.5)                    MAP@5(all)=0.651722  MAP@5(top-5)=0.205891  fallback=56  0.4s
+  RRF_ppr_pop(alpha=0.5,weights=1.0/1.0)                    MAP@5(all)=0.650844  MAP@5(top-5)=0.188247  fallback=56  0.4s
+  RRF_ppr_pop(alpha=0.7,weights=1.0/0.25)                   MAP@5(all)=0.651344  MAP@5(top-5)=0.197329  fallback=56  0.4s
+  RRF_ppr_pop(alpha=0.7,weights=1.0/0.5)                    MAP@5(all)=0.649760  MAP@5(top-5)=0.185865  fallback=56  0.4s
+  RRF_ppr_pop(alpha=0.7,weights=1.0/1.0)                    MAP@5(all)=0.643696  MAP@5(top-5)=0.173048  fallback=56  0.4s
+
+==============================================================================================================
+RRF(k=60) - PPR + HISTORY + POPULARITY
+==============================================================================================================
+  RRF_ppr_hist_pop(alpha=0.5,weights=1.0/0.5/0.5)           MAP@5(all)=0.643293  MAP@5(top-5)=0.224410  fallback=56  0.5s
+  RRF_ppr_hist_pop(alpha=0.5,weights=1.0/1.0/0.5)           MAP@5(all)=0.633814  MAP@5(top-5)=0.233463  fallback=56  0.5s
+  RRF_ppr_hist_pop(alpha=0.7,weights=1.0/0.5/0.5)           MAP@5(all)=0.650032  MAP@5(top-5)=0.213359  fallback=56  0.5s
+  RRF_ppr_hist_pop(alpha=0.7,weights=1.0/1.0/0.5)           MAP@5(all)=0.644074  MAP@5(top-5)=0.226978  fallback=56  0.5s
+
+==============================================================================================================
+ALL CONFIGURATIONS - SORTED BY MAP@5 AGAINST ALL WATCHED PROGRAMMES
+==============================================================================================================
+ rank                                          method  map_all  map_top5   runtime  fallback
+    1          RRF_ppr_pop(alpha=0.5,weights=1.0/0.5) 0.651722  0.205891  0.438734        56
+    2         RRF_ppr_pop(alpha=0.7,weights=1.0/0.25) 0.651344  0.197329  0.434966        56
+    3          RRF_ppr_pop(alpha=0.5,weights=1.0/1.0) 0.650844  0.188247  0.445559        56
+    4 RRF_ppr_hist_pop(alpha=0.7,weights=1.0/0.5/0.5) 0.650032  0.213359  0.451096        56
+    5          RRF_ppr_pop(alpha=0.7,weights=1.0/0.5) 0.649760  0.185865  0.410865        56
+    6         RRF_ppr_pop(alpha=0.5,weights=1.0/0.25) 0.646933  0.220675  0.430332        56
+    7                                  PPR(alpha=0.7) 0.645481  0.213805 87.239090        56
+    8 RRF_ppr_hist_pop(alpha=0.7,weights=1.0/1.0/0.5) 0.644074  0.226978  0.473700        56
+    9          RRF_ppr_pop(alpha=0.7,weights=1.0/1.0) 0.643696  0.173048  0.443460        56
+   10 RRF_ppr_hist_pop(alpha=0.5,weights=1.0/0.5/0.5) 0.643293  0.224410  0.479279        56
+   11                                 PPR(alpha=0.85) 0.642237  0.182234 88.712162        56
+   12 RRF_ppr_hist_pop(alpha=0.5,weights=1.0/1.0/0.5) 0.633814  0.233463  0.474815        56
+   13                                 PPR(alpha=0.95) 0.622860  0.160921 88.470716        56
+   14                                  PPR(alpha=0.5) 0.618347  0.240571 76.632569        56
+
+==============================================================================================================
+FINAL BUILDS - TOP 3 REFIT ON WEEKS 11-30
+==============================================================================================================
+  submission_v3_1.csv: rank 1, RRF_ppr_pop(alpha=0.5,weights=1.0/0.5), validation MAP@5(all)=0.651722
+  training pairs: 883,931 over 4,890 users; pool: 6,636; cold-start submission users: 2
+  airtime ratio: min 0.005 median 0.967 max 349.250
+  PPR alpha=0.5 fitted in 28.6s
+  fallback users served by the popularity baseline: 2
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v3_1.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 102
+    pool_size: 6636
+  submission_v3_1.csv checks: {'rows': 1260, 'template_rows': 1260, 'five_ids_every_row': True, 'distinct_ids_every_row': True, 'all_ids_in_pool': True, 'order_matches_template': True, 'zero_ids': 0, 'distinct_programmes_used': 102, 'pool_size': 6636}
+  submission_v3_2.csv: rank 2, RRF_ppr_pop(alpha=0.7,weights=1.0/0.25), validation MAP@5(all)=0.651344
+  training pairs: 883,931 over 4,890 users; pool: 6,636; cold-start submission users: 2
+  airtime ratio: min 0.005 median 0.967 max 349.250
+  PPR alpha=0.7 fitted in 62.6s
+  fallback users served by the popularity baseline: 2
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v3_2.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 107
+    pool_size: 6636
+  submission_v3_2.csv checks: {'rows': 1260, 'template_rows': 1260, 'five_ids_every_row': True, 'distinct_ids_every_row': True, 'all_ids_in_pool': True, 'order_matches_template': True, 'zero_ids': 0, 'distinct_programmes_used': 107, 'pool_size': 6636}
+  submission_v3_3.csv: rank 3, RRF_ppr_pop(alpha=0.5,weights=1.0/1.0), validation MAP@5(all)=0.650844
+  training pairs: 883,931 over 4,890 users; pool: 6,636; cold-start submission users: 2
+  airtime ratio: min 0.005 median 0.967 max 349.250
+  fallback users served by the popularity baseline: 2
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v3_3.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 65
+    pool_size: 6636
+  submission_v3_3.csv checks: {'rows': 1260, 'template_rows': 1260, 'five_ids_every_row': True, 'distinct_ids_every_row': True, 'all_ids_in_pool': True, 'order_matches_template': True, 'zero_ids': 0, 'distinct_programmes_used': 65, 'pool_size': 6636}
+
+Total runtime: 478.7s

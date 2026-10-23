@@ -1,0 +1,78 @@
+
+====================================================================================================
+STEP 2: EVALUATION HARNESS
+====================================================================================================
+Environment: Python 3.14.0 macOS-26.6.2-arm64-arm-64bit-Mach-O
+numpy 2.5.4 pandas 3.0.6
+scipy 1.18.1
+Random seed: 12345
+Do not tune on 31-42 schedule. 31-42 schedule only for pool/final.
+  loaded interactions: 973,912 rows in 0.22s
+  loaded programmes: 9,671 rows in 0.01s
+  loaded schedule 11-20: 115,613 labelled rows in 1.38s
+  loaded schedule 21-30: 121,505 labelled rows in 1.43s
+  loaded schedule 31-42: 144,774 labelled rows in 1.66s
+
+Validation: train on ['11-20'], eval on 21-30
+  pool_val size: 6,363 programmes airing in 21-30
+  eval users with >=1 watched in 21-30: 2,388
+  cold-start users (no training interactions) among eval users: 22
+
+====================================================================================================
+BASELINE B1: POPULARITY
+====================================================================================================
+  B1 MAP@5 (top-5 target): 0.148392 over 2388 users
+  B1 MAP@5 (all-watched):   0.611892
+  B1 runtime: 0.002s
+
+====================================================================================================
+BASELINE B2: PERSONAL HISTORY
+====================================================================================================
+  B2 MAP@5 (top-5 target): 0.245631 over 2388 users
+  B2 MAP@5 (all-watched):   0.548349
+  B2 runtime: 0.003s
+
+====================================================================================================
+M1: PERSONALIZED PAGERANK (batched power iteration)
+====================================================================================================
+  Edge weight: log1p(seconds/60). Restart = user's own programmes weighted by that edge weight.
+  alpha in {0.3,0.5,0.7,0.85}, tol 1e-6, max_iter 30, chunk_size 500
+  PPR alpha=0.3: n=5299 (users=2401, items=2898), eval_users_with_train=2366, chunks of 500, max_iter=30
+    chunk 1 (500 users) converged at iter 12, diff=3.72e-07, elapsed=0.7s
+    chunk 2 (500 users) converged at iter 12, diff=3.72e-07, elapsed=0.7s
+    chunk 3 (500 users) converged at iter 12, diff=3.72e-07, elapsed=0.7s
+    chunk 4 (500 users) converged at iter 12, diff=3.72e-07, elapsed=0.7s
+    chunk 5 (366 users) converged at iter 12, diff=3.72e-07, elapsed=0.5s
+  PPR alpha=0.3 total runtime: 15.6s
+  alpha=0.3: MAP@5(top5)=0.251300, MAP@5(all)=0.579790, runtime=-1792643163.1s, fallback=22
+  PPR alpha=0.5: n=5299 (users=2401, items=2898), eval_users_with_train=2366, chunks of 500, max_iter=30
+    chunk 1 (500 users) converged at iter 19, diff=9.54e-07, elapsed=1.0s
+    chunk 2 (500 users) converged at iter 19, diff=9.54e-07, elapsed=1.0s
+    chunk 3 (500 users) converged at iter 19, diff=9.54e-07, elapsed=1.0s
+    chunk 4 (500 users) converged at iter 19, diff=9.54e-07, elapsed=1.0s
+    chunk 5 (366 users) converged at iter 19, diff=9.54e-07, elapsed=0.8s
+  PPR alpha=0.5 total runtime: 39.3s
+  alpha=0.5: MAP@5(top5)=0.244054, MAP@5(all)=0.617939, runtime=-1792643139.3s, fallback=22
+  PPR alpha=0.7: n=5299 (users=2401, items=2898), eval_users_with_train=2366, chunks of 500, max_iter=30
+    chunk 1 (500 users) done 30 iters, elapsed=1.6s
+    chunk 2 (500 users) done 30 iters, elapsed=1.7s
+    chunk 3 (500 users) done 30 iters, elapsed=1.6s
+    chunk 4 (500 users) done 30 iters, elapsed=1.6s
+    chunk 5 (366 users) done 30 iters, elapsed=1.2s
+  PPR alpha=0.7 total runtime: 42.5s
+  alpha=0.7: MAP@5(top5)=0.214258, MAP@5(all)=0.645096, runtime=-1792643136.0s, fallback=22
+  PPR alpha=0.85: n=5299 (users=2401, items=2898), eval_users_with_train=2366, chunks of 500, max_iter=30
+    chunk 1 (500 users) done 30 iters, elapsed=1.6s
+    chunk 2 (500 users) done 30 iters, elapsed=1.6s
+    chunk 3 (500 users) done 30 iters, elapsed=1.7s
+    chunk 4 (500 users) done 30 iters, elapsed=1.6s
+    chunk 5 (366 users) done 30 iters, elapsed=1.2s
+  PPR alpha=0.85 total runtime: 43.1s
+  alpha=0.85: MAP@5(top5)=0.183591, MAP@5(all)=0.641274, runtime=-1792643135.4s, fallback=22
+  Selected PPR alpha: 0.3
+
+====================================================================================================
+M2: CONTENT-BASED
+====================================================================================================
+  Vectors from category, three genre fields and TF-IDF of normalized title (strip episode/season info).
+  User profile = seconds-weighted mean of watched programme vectors; score = cosine similarity.

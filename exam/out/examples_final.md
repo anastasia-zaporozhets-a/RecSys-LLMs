@@ -1,85 +1,53 @@
-# Final submission and validation examples
+# Final recommendation examples
 
-**Designated final submission: `submission_v3_1.csv`.**
+**Designated final: `submission_v6_3.csv` — private 0.40253 / public 0.41907.**
 
-## Exact winning configuration
+## Protocol and model
 
-- Configuration: `RRF_ppr_pop(alpha=0.5,weights=1.0/0.5)`.
-- Reciprocal-rank fusion: `k=60`, one-based ranks, top 200 items from each input ranking.
-- PPR: alpha **0.5**, weight **1.0**. Bipartite user–programme graph, edge weight `log1p(overlap_seconds / 60)`, row-normalized transitions; restart on the user's own programmes weighted by those edges. `R <- 0.5 * P.T @ R + V`, with `V = 0.5 * normalized_restart`; max 30 iterations, tolerance 1e-6, chunks of 500.
-- Popularity: weight **0.5**, ranked by distinct training viewers, restricted to the airing pool.
-- History weight **0.0**; no airtime adjustment (beta **0.0**).
-- Fused score: `1 / (60 + rank_PPR) + 0.5 / (60 + rank_popularity)`; an absent item contributes zero for that input. Score ties use ascending programme ID.
-- Exactly five distinct IDs; popularity fill and popularity-only cold-start fallback; already-watched programmes allowed.
-- Validation MAP@5, **all watched**: **0.6517215392095576**.
-- Validation MAP@5, **top-five-by-time target**: **0.2058911578801139**.
-- Validation fits on 11–20, predicts the 21–30 airing pool, and averages over 4,799 users. Selection uses all-watched MAP@5. Final submissions refit on 11–30 and use the 31–42 airing pool.
+All five recommendation columns below predict **31–42**, using **11–30** training viewing and the 31–42 airing pool. Popularity, history, PPR and v6_3 come directly from the saved final submission files. Plain M2 uses the same catalogue features and seconds-weighted 11–30 profiles, scored only for these three users.
 
-## Kaggle results
+The actual 21–30 and whole-training 11–30 columns are **historical context**, not ground truth for 31–42. In particular, 21–30 is part of the final model's training history. These tables are not held-out validation predictions, and they are not used to calculate MAP@5.
 
-User-reported public/private scores (screenshots saved).
+Actual Top-5 means highest summed qualifying watched seconds, ties by programme ID; historical lists are not restricted to the future airing pool. The audited watched-pair rule is at least 120 seconds and at least 5% of summed touched-airing duration per block.
 
-| Submission / method | Public | Private |
-|---|---:|---:|
-| submission_v3_1.csv (designated final) | 0.33173 | 0.31829 |
-| submission_v3_2.csv | 0.32686 | 0.31413 |
-| submission_v3_3.csv | 0.32539 | 0.31550 |
-| PPR alpha 0.3 | 0.30721 | 0.27476 |
-| Popularity | 0.29788 | 0.29442 |
-| History + airtime (final_v2) | 0.28189 | 0.25260 |
-| History | 0.28079 | 0.25013 |
+The heavy/light labels refer to the original 11–20 examples. Cold start means no qualifying training programme history; such users receive the same popularity fallback for every method.
 
-## Submission validation
+v6_3: size 200/source; weekly rates; stacked folds 11–20 → 21–30 and 11–25 → 26–30; channel/time/season/recency features; binary all-watched LambdaRank; five-seed raw-score mean. Saved seed/tree counts: `{"12345": 150, "12346": 112, "12347": 132, "12348": 173, "12349": 275}`.
 
-All files use the 31–42 airing pool; user IDs are read as strings.
+## Heavy: `13571199046623737884`
 
-- `submission_v3_1.csv`: **PASS** — 1,260 rows, template order, unique users, five distinct nonzero in-pool IDs per row.
-  SHA-256: `73a6a63a21779c70f8d733dace9c9be4d72c9020e5ca67aa421eceb9fc11885a`
-- `submission_v3_2.csv`: **PASS** — 1,260 rows, template order, unique users, five distinct nonzero in-pool IDs per row.
-  SHA-256: `f4ecb5ea5f3122a56d29b144e80437915862a4833779186c6b36d9b4d25a4f14`
-- `submission_v3_3.csv`: **PASS** — 1,260 rows, template order, unique users, five distinct nonzero in-pool IDs per row.
-  SHA-256: `63a14c8d2ef61cbfc0b3eb1ffbca0685f4e1aa904155a21c2c340c40ff369eaa`
+Whole 11–30 history: **775 programmes, 9,982,268 seconds**. 21–30 actual: **232 programmes**.
 
-## Side-by-side validation examples
+| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v6_3 (designated final) | Actual Top-5: 21–30 | Actual Top-5: whole 11–30 history |
+|---:|---|---|---|---|---|---|---|
+| 1 | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `90068169`<br>Х/ф 'Хэнкок'.<br>(Фильмы) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо)<br>18,605 s | `2400480`<br>ТСН.<br>(Инфо)<br>903,201 s |
+| 2 | `240081`<br>Факты.<br>(Инфо) | `20088`<br>'Завтрак с 1+1'. Информационно-развлекательная программа.<br>(Развлечения) | `240081`<br>Факты.<br>(Инфо) | `90045141`<br>Х/ф 'Громобой'.<br>(Фильмы) | `2400480`<br>ТСН.<br>(Инфо) | `200352`<br>'Вечерний квартал'.<br>(Развлечения)<br>17,764 s | `20088`<br>'Завтрак с 1+1'. Информационно-развлекательная программа.<br>(Развлечения)<br>351,085 s |
+| 3 | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `90037440`<br>Х/ф 'Инферно'.<br>(Фильмы) | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `90074629`<br>Х/ф 'Американский пирог: Все в сборе'.<br>(Фильмы)<br>10,807 s | `240081`<br>Факты.<br>(Инфо)<br>272,661 s |
+| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `20088`<br>'Завтрак с 1+1'. Информационно-развлекательная программа.<br>(Развлечения) | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы) | `2400508`<br>Сегодня.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо)<br>10,185 s | `2400508`<br>Сегодня.<br>(Инфо)<br>251,641 s |
+| 5 | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `90071772`<br>Х/ф 'Центурион'.<br>(Фильмы) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `700369`<br>'Ліга сміху'.<br>(Развлечения)<br>10,024 s | `6500479`<br>'Мир наизнанку'.<br>(Познавательное)<br>245,137 s |
 
-All recommendations below are trained on 11–20 and restricted to programmes airing in 21–30. Actual Top-5 is ranked by 21–30 overlap seconds (ties by programme ID). These are validation predictions, not rows from the 31–42 submission.
+## Light: `8150816946177670084`
 
-### Heavy: `13571199046623737884`
+Whole 11–30 history: **12 programmes, 23,198 seconds**. 21–30 actual: **11 programmes**.
 
-11–20 history: 596 programmes, 9,396,297 seconds. 21–30 actual: 232 programmes.
+| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v6_3 (designated final) | Actual Top-5: 21–30 | Actual Top-5: whole 11–30 history |
+|---:|---|---|---|---|---|---|---|
+| 1 | `2400480`<br>ТСН.<br>(Инфо) | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы) | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы) | `90068169`<br>Х/ф 'Хэнкок'.<br>(Фильмы) | `240081`<br>Факты.<br>(Инфо) | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы)<br>4,345 s | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы)<br>4,345 s |
+| 2 | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `90045141`<br>Х/ф 'Громобой'.<br>(Фильмы) | `2400480`<br>ТСН.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо)<br>3,991 s | `240081`<br>Факты.<br>(Инфо)<br>3,991 s |
+| 3 | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `90041065`<br>Х/ф 'Доспехи Бога 2'.<br>(Фильмы) | `90041065`<br>Х/ф 'Доспехи Бога 2'.<br>(Фильмы) | `90050977`<br>Х/ф 'Васаби'.<br>(Фильмы) | `200432`<br>Дизель-шоу. Дайджест.<br>(Развлечения) | `90041065`<br>Х/ф 'Доспехи Бога 2'.<br>(Фильмы)<br>3,868 s | `90041065`<br>Х/ф 'Доспехи Бога 2'.<br>(Фильмы)<br>3,868 s |
+| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `90079612`<br>Х/ф 'Зачинщики'.<br>(Фильмы) | `90079612`<br>Х/ф 'Зачинщики'.<br>(Фильмы) | `90037440`<br>Х/ф 'Инферно'.<br>(Фильмы) | `300358`<br>Скетч-шоу 'На троих', 4 сезон.<br>(Развлечения) | `90079612`<br>Х/ф 'Зачинщики'.<br>(Фильмы)<br>2,084 s | `90053098`<br>Х/ф 'Мужество в бою'.<br>(Фильмы)<br>2,753 s |
+| 5 | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `90065424`<br>Х/ф 'Мистер Бин на отдыхе'.<br>(Фильмы) | `90065424`<br>Х/ф 'Мистер Бин на отдыхе'.<br>(Фильмы) | `90082810`<br>Х/ф 'Шазам!'.<br>(Фильмы) | `2500413`<br>Гражданская оборона.<br>(Инфо) | `90065424`<br>Х/ф 'Мистер Бин на отдыхе'.<br>(Фильмы)<br>2,082 s | `90079612`<br>Х/ф 'Зачинщики'.<br>(Фильмы)<br>2,084 s |
 
-| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v3_1: PPR 0.5 + popularity | Actual Top-5 watched in 21–30 |
-|---:|---|---|---|---|---|---|
-| 1 | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `90037440`<br>Х/ф &#x27;Инферно&#x27;.<br>(Фильмы) | `2400480`<br>ТСН.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) |
-| 2 | `240081`<br>Факты.<br>(Инфо) | `20088`<br>&#x27;Завтрак с 1+1&#x27;. Информационно-развлекательная программа.<br>(Развлечения) | `240081`<br>Факты.<br>(Инфо) | `90045141`<br>Х/ф &#x27;Громобой&#x27;.<br>(Фильмы) | `240081`<br>Факты.<br>(Инфо) | `200352`<br>&#x27;Вечерний квартал&#x27;.<br>(Развлечения) |
-| 3 | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `90050977`<br>Х/ф &#x27;Васаби&#x27;.<br>(Фильмы) | `2400508`<br>Сегодня.<br>(Инфо) | `90074629`<br>Х/ф &#x27;Американский пирог: Все в сборе&#x27;.<br>(Фильмы) |
-| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `90068169`<br>Х/ф &#x27;Хэнкок&#x27;.<br>(Фильмы) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) |
-| 5 | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `20088`<br>&#x27;Завтрак с 1+1&#x27;. Информационно-развлекательная программа.<br>(Развлечения) | `90071772`<br>Х/ф &#x27;Центурион&#x27;.<br>(Фильмы) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `700369`<br>&#x27;Ліга сміху&#x27;.<br>(Развлечения) |
+## Cold start: `16561743585370579180`
 
-### Light: `8150816946177670084`
+Whole 11–30 history: **0 programmes, 0 seconds**. 21–30 actual: **0 programmes**.
 
-11–20 history: 1 programmes, 2,753 seconds. 21–30 actual: 11 programmes.
+All methods use the popularity fallback. No recorded qualifying viewing exists in 21–30 or 11–30, so both actual-watch columns are empty.
 
-| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v3_1: PPR 0.5 + popularity | Actual Top-5 watched in 21–30 |
-|---:|---|---|---|---|---|---|
-| 1 | `2400480`<br>ТСН.<br>(Инфо) | `90053098`<br>Х/ф &#x27;Мужество в бою&#x27;.<br>(Фильмы) | `90053098`<br>Х/ф &#x27;Мужество в бою&#x27;.<br>(Фильмы) | `90036309`<br>Х/ф &#x27;Военные потери&#x27;.<br>(Фильмы) | `2400480`<br>ТСН.<br>(Инфо) | `90050977`<br>Х/ф &#x27;Васаби&#x27;.<br>(Фильмы) |
-| 2 | `240081`<br>Факты.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `90081821`<br>Х/ф &#x27;Подлежит уничтожению&#x27;, 1-4 с.<br>(Фильмы) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) |
-| 3 | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `90053098`<br>Х/ф &#x27;Мужество в бою&#x27;.<br>(Фильмы) | `2400508`<br>Сегодня.<br>(Инфо) | `90041065`<br>Х/ф &#x27;Доспехи Бога 2&#x27;.<br>(Фильмы) |
-| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `90038879`<br>Х/ф &#x27;Щит и меч&#x27;, 1 с.<br>(Фильмы) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `90079612`<br>Х/ф &#x27;Зачинщики&#x27;.<br>(Фильмы) |
-| 5 | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `90079336`<br>Х/ф &#x27;Второе дыхание&#x27;, 1-4 с.<br>(Фильмы) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `90065424`<br>Х/ф &#x27;Мистер Бин на отдыхе&#x27;.<br>(Фильмы) |
-
-### Cold start: `16561743585370579180`
-
-11–20 history: 0 programmes, 0 seconds. 21–30 actual: 0 programmes.
-
-Cold start in 11–20: all five methods use the same popularity fallback.
-
-No recorded 21–30 viewing: the actual Top-5 is unavailable, and this user is excluded from validation MAP@5 (which requires a nonempty target).
-
-| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v3_1: PPR 0.5 + popularity | Actual Top-5 watched in 21–30 |
-|---:|---|---|---|---|---|---|
-| 1 | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | — |
-| 2 | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | — |
-| 3 | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | `2400467`<br>&#x27;Викна-Новости&#x27;.<br>(Инфо) | — |
-| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | — |
-| 5 | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | `6500479`<br>&#x27;Мир наизнанку&#x27;.<br>(Познавательное) | — |
+| Rank | Popularity | History | PPR alpha 0.3 | Content-based M2 | v6_3 (designated final) | Actual Top-5: 21–30 | Actual Top-5: whole 11–30 history |
+|---:|---|---|---|---|---|---|---|
+| 1 | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | `2400480`<br>ТСН.<br>(Инфо) | — | — |
+| 2 | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | `240081`<br>Факты.<br>(Инфо) | — | — |
+| 3 | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `2400467`<br>'Викна-Новости'.<br>(Инфо) | `2400467`<br>'Викна-Новости'.<br>(Инфо) | — | — |
+| 4 | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | `2400508`<br>Сегодня.<br>(Инфо) | — | — |
+| 5 | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | `6500479`<br>'Мир наизнанку'.<br>(Познавательное) | — | — |

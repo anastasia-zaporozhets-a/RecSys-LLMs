@@ -1,0 +1,77 @@
+{
+  "selection_metric": "mean = (fold10 + fold5) / 2, both all-watched MAP@5",
+  "search": "predeclared staged one-factor ablations, baseline parameter grid, then combination grid",
+  "chosen": [
+    {
+      "id": "6a441367266b8e5727ca",
+      "config": {
+        "label": "binary",
+        "extras": [
+          "candidate_rank",
+          "decay4",
+          "decay8",
+          "halves"
+        ],
+        "params": {
+          "num_leaves": 63,
+          "learning_rate": 0.1,
+          "min_child_samples": 50
+        },
+        "seeds": [
+          12345,
+          12346,
+          12347,
+          12348,
+          12349
+        ],
+        "candidate_size": 200
+      },
+      "iterations": {
+        "12345": 57,
+        "12346": 95,
+        "12347": 108,
+        "12348": 78,
+        "12349": 54
+      },
+      "map_fold10": 0.7321958912037038,
+      "map_fold5": 0.6467864693446088,
+      "mean_map": 0.6894911802741563
+    },
+    {
+      "id": "24e2ce86e6d87497ac35",
+      "config": {
+        "label": "binary",
+        "extras": [
+          "candidate_rank",
+          "decay4",
+          "decay8",
+          "halves"
+        ],
+        "params": {
+          "num_leaves": 63,
+          "learning_rate": 0.05,
+          "min_child_samples": 20
+        },
+        "seeds": [
+          12345,
+          12346,
+          12347,
+          12348,
+          12349
+        ],
+        "candidate_size": 200
+      },
+      "iterations": {
+        "12345": 106,
+        "12346": 180,
+        "12347": 142,
+        "12348": 139,
+        "12349": 165
+      },
+      "map_fold10": 0.7318255208333333,
+      "map_fold5": 0.6463460183227626,
+      "mean_map": 0.6890857695780479
+    }
+  ],
+  "designated_final_so_far": "submission_v6_3.csv"
+}

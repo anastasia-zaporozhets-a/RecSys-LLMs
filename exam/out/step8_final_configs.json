@@ -1,0 +1,416 @@
+[
+  {
+    "id": "6a441367266b8e5727ca",
+    "config": {
+      "label": "binary",
+      "extras": [
+        "candidate_rank",
+        "decay4",
+        "decay8",
+        "halves"
+      ],
+      "params": {
+        "num_leaves": 63,
+        "learning_rate": 0.1,
+        "min_child_samples": 50
+      },
+      "seeds": [
+        12345,
+        12346,
+        12347,
+        12348,
+        12349
+      ],
+      "candidate_size": 200
+    },
+    "iterations": {
+      "12345": 57,
+      "12346": 95,
+      "12347": 108,
+      "12348": 78,
+      "12349": 54
+    },
+    "map_fold10": 0.7321958912037038,
+    "map_fold5": 0.6467864693446088,
+    "mean_map": 0.6894911802741563,
+    "file": "submission_v7_1.csv",
+    "feature_names": [
+      "user_item_seconds_per_week",
+      "user_item_airings_per_week",
+      "user_item_days_per_week",
+      "last4weeks_seconds_per_week",
+      "ppr_score",
+      "ppr_rank",
+      "exposure_score_per_target_week",
+      "exposure_rank",
+      "popularity_users_per_week",
+      "global_item_seconds_per_week",
+      "target_airtime_per_week",
+      "target_airings_per_week",
+      "airtime_ratio_weekly",
+      "user_category_share",
+      "is_new_for_user",
+      "category_0",
+      "category_1",
+      "category_2",
+      "category_3",
+      "category_4",
+      "category_5",
+      "category_6",
+      "category_7",
+      "category_8",
+      "user_item_channel_share",
+      "E168_recent_per_target_week",
+      "airs_first_two_weeks",
+      "target_week_coverage",
+      "last2weeks_item_seconds_per_week",
+      "E168_decay4_per_target_week",
+      "E168_decay8_per_target_week",
+      "E168_first_half_per_week",
+      "E168_second_half_per_week",
+      "E48_candidate_rank"
+    ],
+    "checks": {
+      "rows": 1260,
+      "template_rows": 1260,
+      "five_ids_every_row": true,
+      "distinct_ids_every_row": true,
+      "all_ids_in_pool": true,
+      "order_matches_template": true,
+      "zero_ids": 0,
+      "distinct_programmes_used": 134,
+      "pool_size": 6636
+    },
+    "selection_metric": "unweighted mean of fold10/fold5 all-watched MAP@5",
+    "early_stopping_metric": "same mean-fold MAP@5",
+    "fingerprint": {
+      "features": {
+        "version": 1,
+        "base": {
+          "version": 1,
+          "inputs": {
+            "data/dataset11-30.csv": {
+              "bytes": 396216555,
+              "mtime_ns": 1792659580600052667
+            },
+            "data/submission.csv": {
+              "bytes": 38348,
+              "mtime_ns": 1792659581866020583
+            },
+            "out/interactions.csv": {
+              "bytes": 40877059,
+              "mtime_ns": 1792660497510995557
+            },
+            "out/programmes.csv": {
+              "bytes": 1036479,
+              "mtime_ns": 1792660500467451628
+            },
+            "data/export_arh_11-20-final.csv": {
+              "bytes": 153322643,
+              "mtime_ns": 1792659580891309412
+            },
+            "data/export_arh_21-30-final.csv": {
+              "bytes": 154366907,
+              "mtime_ns": 1792659581226280733
+            },
+            "data/export_arh_31-42-final.csv": {
+              "bytes": 185952991,
+              "mtime_ns": 1792659581864935093
+            }
+          },
+          "feature_code_sha256": {
+            "harness.py": "fb5483dcd63286f7ba71e7bd478969225b4e867aa28253c41b105dff329e7a89",
+            "step5_exposure.py": "1e6d4a7d998bcde7675c8b9ace9ae63a2d076e886f8f0ee2862b80a2f5abbecb",
+            "step6_ltr.py": "420bf0fb6e8f4ec3a1f4d49e15ebd4426d9001615e300c9340cd7444d051c8dc",
+            "step7_ltr_plus.py": "ab409ef9d9300d586e36a6a07738d6e61e1db2bc0672bff553b537290b28b143",
+            "step7_feature_cache.py": "f2e635ea8e211afaa527f639322d1373426b6ad0eb764c297b75177e5d5b1b79"
+          }
+        },
+        "cache_sources": {
+          "fold10/manifest.json": [
+            2823,
+            1792745452546808364
+          ],
+          "fold10/base_features.npz": [
+            41175536,
+            1792745448238761628
+          ],
+          "fold10/new_features.npz": [
+            15711752,
+            1792745450039222319
+          ],
+          "fold10/aligned_arrays.npz": [
+            7393429,
+            1792745451115123229
+          ],
+          "fold10/training_pairs.csv.gz": [
+            3539068,
+            1792745452545641769
+          ],
+          "fold5/manifest.json": [
+            2821,
+            1792745632771571618
+          ],
+          "fold5/base_features.npz": [
+            40922444,
+            1792745628214034189
+          ],
+          "fold5/new_features.npz": [
+            14450321,
+            1792745629887396925
+          ],
+          "fold5/aligned_arrays.npz": [
+            6854452,
+            1792745630928629123
+          ],
+          "fold5/training_pairs.csv.gz": [
+            4397952,
+            1792745632769238885
+          ],
+          "final/manifest.json": [
+            2821,
+            1792745697354792881
+          ],
+          "final/base_features.npz": [
+            13263209,
+            1792745694164551703
+          ],
+          "final/new_features.npz": [
+            4972836,
+            1792745694687958544
+          ],
+          "final/aligned_arrays.npz": [
+            1956734,
+            1792745694970358659
+          ],
+          "final/training_pairs.csv.gz": [
+            5809789,
+            1792745697349966006
+          ],
+          "windows/train10/pairs.csv.gz": [
+            8297567,
+            1792745261114134732
+          ],
+          "windows/train20/pairs.csv.gz": [
+            12426558,
+            1792745273999290941
+          ],
+          "windows/label5/pairs.csv.gz": [
+            4022217,
+            1792745276314377646
+          ]
+        },
+        "step8_feature_code": "6864cb6de052bfeee4118318bd028e8620bda2c6b457b3f07281f09c612c2602"
+      },
+      "experiment_code": "e30d939c4851ab266ad330b74a6fa2b8558948bda95d1f9531c055c8fbe4f40c",
+      "user_split_sha256": "6bb7a6548b8d3f7b603766b46a4c628d3e2687698e32fed80edcee06aa6b1a27"
+    }
+  },
+  {
+    "id": "24e2ce86e6d87497ac35",
+    "config": {
+      "label": "binary",
+      "extras": [
+        "candidate_rank",
+        "decay4",
+        "decay8",
+        "halves"
+      ],
+      "params": {
+        "num_leaves": 63,
+        "learning_rate": 0.05,
+        "min_child_samples": 20
+      },
+      "seeds": [
+        12345,
+        12346,
+        12347,
+        12348,
+        12349
+      ],
+      "candidate_size": 200
+    },
+    "iterations": {
+      "12345": 106,
+      "12346": 180,
+      "12347": 142,
+      "12348": 139,
+      "12349": 165
+    },
+    "map_fold10": 0.7318255208333333,
+    "map_fold5": 0.6463460183227626,
+    "mean_map": 0.6890857695780479,
+    "file": "submission_v7_2.csv",
+    "feature_names": [
+      "user_item_seconds_per_week",
+      "user_item_airings_per_week",
+      "user_item_days_per_week",
+      "last4weeks_seconds_per_week",
+      "ppr_score",
+      "ppr_rank",
+      "exposure_score_per_target_week",
+      "exposure_rank",
+      "popularity_users_per_week",
+      "global_item_seconds_per_week",
+      "target_airtime_per_week",
+      "target_airings_per_week",
+      "airtime_ratio_weekly",
+      "user_category_share",
+      "is_new_for_user",
+      "category_0",
+      "category_1",
+      "category_2",
+      "category_3",
+      "category_4",
+      "category_5",
+      "category_6",
+      "category_7",
+      "category_8",
+      "user_item_channel_share",
+      "E168_recent_per_target_week",
+      "airs_first_two_weeks",
+      "target_week_coverage",
+      "last2weeks_item_seconds_per_week",
+      "E168_decay4_per_target_week",
+      "E168_decay8_per_target_week",
+      "E168_first_half_per_week",
+      "E168_second_half_per_week",
+      "E48_candidate_rank"
+    ],
+    "checks": {
+      "rows": 1260,
+      "template_rows": 1260,
+      "five_ids_every_row": true,
+      "distinct_ids_every_row": true,
+      "all_ids_in_pool": true,
+      "order_matches_template": true,
+      "zero_ids": 0,
+      "distinct_programmes_used": 139,
+      "pool_size": 6636
+    },
+    "selection_metric": "unweighted mean of fold10/fold5 all-watched MAP@5",
+    "early_stopping_metric": "same mean-fold MAP@5",
+    "fingerprint": {
+      "features": {
+        "version": 1,
+        "base": {
+          "version": 1,
+          "inputs": {
+            "data/dataset11-30.csv": {
+              "bytes": 396216555,
+              "mtime_ns": 1792659580600052667
+            },
+            "data/submission.csv": {
+              "bytes": 38348,
+              "mtime_ns": 1792659581866020583
+            },
+            "out/interactions.csv": {
+              "bytes": 40877059,
+              "mtime_ns": 1792660497510995557
+            },
+            "out/programmes.csv": {
+              "bytes": 1036479,
+              "mtime_ns": 1792660500467451628
+            },
+            "data/export_arh_11-20-final.csv": {
+              "bytes": 153322643,
+              "mtime_ns": 1792659580891309412
+            },
+            "data/export_arh_21-30-final.csv": {
+              "bytes": 154366907,
+              "mtime_ns": 1792659581226280733
+            },
+            "data/export_arh_31-42-final.csv": {
+              "bytes": 185952991,
+              "mtime_ns": 1792659581864935093
+            }
+          },
+          "feature_code_sha256": {
+            "harness.py": "fb5483dcd63286f7ba71e7bd478969225b4e867aa28253c41b105dff329e7a89",
+            "step5_exposure.py": "1e6d4a7d998bcde7675c8b9ace9ae63a2d076e886f8f0ee2862b80a2f5abbecb",
+            "step6_ltr.py": "420bf0fb6e8f4ec3a1f4d49e15ebd4426d9001615e300c9340cd7444d051c8dc",
+            "step7_ltr_plus.py": "ab409ef9d9300d586e36a6a07738d6e61e1db2bc0672bff553b537290b28b143",
+            "step7_feature_cache.py": "f2e635ea8e211afaa527f639322d1373426b6ad0eb764c297b75177e5d5b1b79"
+          }
+        },
+        "cache_sources": {
+          "fold10/manifest.json": [
+            2823,
+            1792745452546808364
+          ],
+          "fold10/base_features.npz": [
+            41175536,
+            1792745448238761628
+          ],
+          "fold10/new_features.npz": [
+            15711752,
+            1792745450039222319
+          ],
+          "fold10/aligned_arrays.npz": [
+            7393429,
+            1792745451115123229
+          ],
+          "fold10/training_pairs.csv.gz": [
+            3539068,
+            1792745452545641769
+          ],
+          "fold5/manifest.json": [
+            2821,
+            1792745632771571618
+          ],
+          "fold5/base_features.npz": [
+            40922444,
+            1792745628214034189
+          ],
+          "fold5/new_features.npz": [
+            14450321,
+            1792745629887396925
+          ],
+          "fold5/aligned_arrays.npz": [
+            6854452,
+            1792745630928629123
+          ],
+          "fold5/training_pairs.csv.gz": [
+            4397952,
+            1792745632769238885
+          ],
+          "final/manifest.json": [
+            2821,
+            1792745697354792881
+          ],
+          "final/base_features.npz": [
+            13263209,
+            1792745694164551703
+          ],
+          "final/new_features.npz": [
+            4972836,
+            1792745694687958544
+          ],
+          "final/aligned_arrays.npz": [
+            1956734,
+            1792745694970358659
+          ],
+          "final/training_pairs.csv.gz": [
+            5809789,
+            1792745697349966006
+          ],
+          "windows/train10/pairs.csv.gz": [
+            8297567,
+            1792745261114134732
+          ],
+          "windows/train20/pairs.csv.gz": [
+            12426558,
+            1792745273999290941
+          ],
+          "windows/label5/pairs.csv.gz": [
+            4022217,
+            1792745276314377646
+          ]
+        },
+        "step8_feature_code": "6864cb6de052bfeee4118318bd028e8620bda2c6b457b3f07281f09c612c2602"
+      },
+      "experiment_code": "e30d939c4851ab266ad330b74a6fa2b8558948bda95d1f9531c055c8fbe4f40c",
+      "user_split_sha256": "6bb7a6548b8d3f7b603766b46a4c628d3e2687698e32fed80edcee06aa6b1a27"
+    }
+  }
+]

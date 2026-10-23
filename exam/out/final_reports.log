@@ -1,0 +1,33 @@
+Validate all submission artifacts and regenerate the final two Markdown reports.
+
+Run from exam/: .venv/bin/python src/final_reports.py
+Uses saved submissions/validation metrics. Only three M2 user profiles are
+scored; no LTR model fitting, tuning, PPR refitting or raw-log join is run.
+The examples are FINAL 31-42 predictions, with actual 21-30 and 11-30 viewing
+shown as historical context, not as future ground truth. No 31-42 viewing exists.
+
+VALIDATED submission_final_v2.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_history.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_popularity.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_ppr_alpha0.3.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v3_1.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v3_2.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v3_3.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v4_1.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v4_2.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v4_3.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v5_blend.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v5_ltr.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v6_1.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v6_2.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v6_3.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v7_1.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v7_2.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED submission_v8_ens.csv: 1,260 ordered unique users; five distinct in-pool IDs
+VALIDATED out/submission_final.csv: 1,260 ordered unique users; five distinct in-pool IDs
+EXAMPLES Heavy 13571199046623737884: 775 training programmes; final v6_3=[240081, 2400480, 2400467, 2400508, 6500479]
+EXAMPLES Light 8150816946177670084: 12 training programmes; final v6_3=[240081, 2400480, 200432, 300358, 2500413]
+EXAMPLES Cold start 16561743585370579180: 0 training programmes; final v6_3=[2400480, 240081, 2400467, 2400508, 6500479]
+Wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/examples_final.md
+Wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/final_summary.md
+Validated 19 submission artifacts. Final: submission_v6_3.csv; private 0.40253 / public 0.41907.

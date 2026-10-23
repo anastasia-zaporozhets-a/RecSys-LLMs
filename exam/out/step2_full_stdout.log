@@ -1,0 +1,87 @@
+
+====================================================================================================
+STEP 2: FULL EVALUATION (STRING USER IDS)
+====================================================================================================
+Environment: Python 3.14.0 macOS-26.6.2-arm64-arm-64bit-Mach-O
+numpy 2.5.4 pandas 3.0.6
+Random seed: 12345
+  loaded interactions: 973,912 rows in 0.26s
+  loaded programmes: 9,671 rows in 0.01s
+  loaded schedule 11-20: 115,613 labelled rows in 1.38s
+  loaded schedule 21-30: 121,505 labelled rows in 1.41s
+  loaded schedule 31-42: 144,774 labelled rows in 1.71s
+Validation: train ['11-20'] eval 21-30, pool 6363, eval_users 4799
+training_users 4834
+cold_start 56
+submission 1260
+
+====================================================================================================
+B1
+====================================================================================================
+B1 MAP@5 top5 0.147777 all 0.610720 rt 0.007s
+
+====================================================================================================
+B2
+====================================================================================================
+B2 MAP@5 top5 0.241036 all 0.550115 rt 0.023s
+
+====================================================================================================
+M1
+====================================================================================================
+  PPR alpha=0.3: n=7732 (u=4834,i=2898), eval_with_train=4743, chunks=500, max_iter=30
+    chunk 1 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 2 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 3 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 4 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 5 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 6 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 7 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 8 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 9 (500 users) conv at iter 12, diff=3.72e-07, 1.3s
+    chunk 10 (243 users) conv at iter 12, diff=3.72e-07, 0.7s
+  PPR alpha=0.3 total: 64.0s
+alpha=0.3: top5 0.247010 all 0.579983 rt 64.1s fb 56
+  PPR alpha=0.5: n=7732 (u=4834,i=2898), eval_with_train=4743, chunks=500, max_iter=30
+    chunk 1 (500 users) conv at iter 19, diff=9.54e-07, 2.0s
+    chunk 2 (500 users) conv at iter 19, diff=9.54e-07, 2.1s
+    chunk 3 (500 users) conv at iter 19, diff=9.54e-07, 2.5s
+    chunk 4 (500 users) conv at iter 19, diff=9.54e-07, 2.6s
+    chunk 5 (500 users) conv at iter 19, diff=9.54e-07, 2.6s
+    chunk 6 (500 users) conv at iter 19, diff=9.54e-07, 2.5s
+    chunk 7 (500 users) conv at iter 19, diff=9.54e-07, 2.4s
+    chunk 8 (500 users) conv at iter 19, diff=9.54e-07, 2.4s
+    chunk 9 (500 users) conv at iter 19, diff=9.54e-07, 2.4s
+    chunk 10 (243 users) conv at iter 19, diff=9.54e-07, 1.2s
+  PPR alpha=0.5 total: 164.4s
+alpha=0.5: top5 0.240571 all 0.618347 rt 164.9s fb 56
+  PPR alpha=0.7: n=7732 (u=4834,i=2898), eval_with_train=4743, chunks=500, max_iter=30
+    chunk 1 (500 users) done 30 iters, 3.8s
+    chunk 2 (500 users) done 30 iters, 3.8s
+    chunk 3 (500 users) done 30 iters, 3.8s
+    chunk 4 (500 users) done 30 iters, 3.9s
+    chunk 5 (500 users) done 30 iters, 3.9s
+    chunk 6 (500 users) done 30 iters, 3.9s
+    chunk 7 (500 users) done 30 iters, 4.0s
+    chunk 8 (500 users) done 30 iters, 4.2s
+    chunk 9 (500 users) done 30 iters, 4.2s
+    chunk 10 (243 users) done 30 iters, 1.9s
+  PPR alpha=0.7 total: 183.7s
+alpha=0.7: top5 0.213805 all 0.645481 rt 184.0s fb 56
+  PPR alpha=0.85: n=7732 (u=4834,i=2898), eval_with_train=4743, chunks=500, max_iter=30
+    chunk 1 (500 users) done 30 iters, 3.8s
+    chunk 2 (500 users) done 30 iters, 3.7s
+    chunk 3 (500 users) done 30 iters, 3.6s
+    chunk 4 (500 users) done 30 iters, 3.6s
+    chunk 5 (500 users) done 30 iters, 3.5s
+    chunk 6 (500 users) done 30 iters, 3.5s
+    chunk 7 (500 users) done 30 iters, 3.4s
+    chunk 8 (500 users) done 30 iters, 3.4s
+    chunk 9 (500 users) done 30 iters, 3.4s
+    chunk 10 (243 users) done 30 iters, 1.8s
+  PPR alpha=0.85 total: 180.6s
+alpha=0.85: top5 0.182234 all 0.642237 rt 180.9s fb 56
+best_alpha 0.3
+
+====================================================================================================
+M2
+====================================================================================================
