@@ -1,7 +1,19 @@
 # Current designated final submission
 
-**`submission_v6_1.csv`** is the designated final so far:
-**public 0.40131 / private 0.38529**, as reported by the user.
+**`submission_v6_3.csv`** is the designated final so far:
+**public 0.41907 / private 0.40253**, as reported by the user.
+
+This is the Step 7 **all_together** recipe: size 200 per source, weekly-scaled
+features, both stacked folds, the new channel/time/season/recency features,
+and raw-score averaging over seeds 12345–12349. The saved tree counts were
+**150, 112, 132, 173, 275**, followed by refitting on 100% of training queries.
+It was chosen post-hoc from the later fold5 column, as documented below.
+
+**Selection policy from Step 8 onward:** the unweighted mean of fold10 and
+fold5 user-holdout all-watched MAP@5, `(MAP_fold10 + MAP_fold5) / 2`.
+This policy applies to early stopping and recipe selection in Step 8.
+
+## Previous designated submission: v6_1
 
 This is the Step 7 **new_features_only** recipe: top-50 candidates per source,
 the five additional channel/time/season/recency features, seed **12345**, and
@@ -39,9 +51,9 @@ User-reported scores; screenshots saved by the user.
 
 | Submission | Public | Private |
 |---|---:|---:|
-| v6_1 — designated final | 0.40131 | 0.38529 |
+| v6_3 — designated final | 0.41907 | 0.40253 |
+| v6_1 | 0.40131 | 0.38529 |
 | v6_2 | Not reported | Not reported |
-| v6_3 — post-hoc later-fold recipe | Pending build | Pending build |
 | v5_ltr | 0.39205 | 0.37705 |
 | v5_blend | 0.37766 | 0.36082 |
 | v4_1 | 0.35383 | 0.33450 |
@@ -95,7 +107,25 @@ early-stopping tree counts** remain fixed at **150, 112, 132, 173, 275**.
 `src/step7_refit_all_together.py` rebuilds and persists missing feature caches,
 refits those five models on 100%, and writes `submission_v6_3.csv`. The live
 log (`out/step7_v6_3_refit.log`) explicitly records this post-hoc choice.
-The current designated final remains v6_1 pending further results.
+The file has now been generated, validated and evaluated; it supersedes v6_1
+as the designated final with the Kaggle scores recorded above.
+
+## Step 8 experiment
+
+`src/step8_ltr_graded.py` starts from the cached v6_3 recipe and fixed candidate
+sets. It compares binary relevance with per-user airing/day quartiles (watched
+grades 1–4, non-watched 0); adds decayed E168, target-half exposure and candidate
+E-rank features; and searches the eight requested LightGBM settings. Channel
+share is already in v6_3 and is retained as an unchanged control.
+
+The predeclared bounded search consists of independent one-change ablations,
+a baseline hyperparameter grid, then the grid on the best label/exposure
+settings from the ablations. It reports the best **tested** combination.
+Every recipe averages five seeds. Selection and early stopping use the new
+equal-weight mean-fold all-watched MAP@5 rule, even for graded-label training.
+The same held-out users are excluded from both training folds. The best two
+distinct recipes are refitted on all training queries at the selected tree
+counts, producing `submission_v7_1.csv` and `submission_v7_2.csv`.
 
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.

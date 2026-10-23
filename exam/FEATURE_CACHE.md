@@ -74,3 +74,41 @@ This path loads cached arrays and applies matrix-level transforms only: no
 view-log join, PPR, exposure computation or new candidate generation. For
 held-out evaluation, pass the original training-user set from `user_split.json`
 instead of `users=None`.
+
+## Step 8 additions and resumable fits
+
+Run the new experiment with:
+
+```bash
+.venv/bin/python -u src/step8_ltr_graded.py
+```
+
+It reads the Step 7 caches without modifying their feature code or data.
+Additional features and quartile labels are cached separately under
+`out/cache/step8/features/{fold10,fold5,final}/`:
+
+- `additional.npz`: E168 half-life-4/8 exposure, first/second-target-half
+  exposure, and E48 rank within the existing candidate set.
+- `labels.npz`: binary, airing-quartile and day-quartile labels plus per-user
+  quartile cutpoints. Final relevance arrays are unused zero placeholders.
+- `manifest.json`: alignment/source fingerprints, feature names and tie rule.
+
+The new time features require one training-only raw-log pass on the first run.
+PPR and candidate generation are reused. Subsequent runs load these additions.
+Decay uses exact interval-integrated weights divided by effective weighted
+training weeks; half-schedule exposure uses each half's week count. Zero-E
+items receive candidate rank `candidate_count + 1`. Channel share is reused
+from the existing base features rather than duplicated.
+
+Grading uses all actual watched items, not only retrieved candidates. Quartile
+boundary ties take the lower bucket; missing clipped counts remain in the
+lowest positive grade. Fold10 counts are obtained from cached train20 minus
+train10 aggregates; fold5 uses cached label5 aggregates directly.
+
+Completed seed fits persist under `out/cache/step8/seed_fits/`, namespaced by
+the experiment, split and feature fingerprints. They include best iterations
+and held-out predictions, allowing interrupted grid searches to resume.
+The predeclared search evaluates at most 24 distinct five-seed configurations
+(duplicate controls/configurations reuse fits). Progress is written live to
+`out/step8_stdout.log`; trials, selection, importances and final configurations
+are saved as `out/step8_*` files. The selected models are in `out/step8_models/`.
