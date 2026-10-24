@@ -1,0 +1,329 @@
+Deadline-aware coverage experiment: B first, optional budgeted C second.
+
+Run from exam/: .venv/bin/python -u src/step9_coverage.py --deadline 15:00
+Live log: out/step9_stdout.log. Default timezone Europe/Kyiv, TODAY, reserving
+10 minutes for the user's Kaggle upload. The script writes files, not uploads.
+
+IDEA CREDIT: the per-airing coverage definition and clipped airtime multiplier
+were described by classmate Vladimir Kuznetsov. No code or files were shared.
+
+A unions raw sessions globally per user/channel before coverage. Full airing
+duration is the denominator; numerator is clipped to each feature/label window.
+n50/n80 thresholds use exact integer comparisons. mean coverage is conditional
+on positively viewed airings (unseen pairs zero); unconditional mean is cached.
+tv_show_id=0 is never an item. No 31-42 viewing is used.
+
+B scores all target-pool items with positive historical n50, not just cached
+LTR candidates: (n50 / training_weeks) * sqrt(clip(target_weekly_airings /
+training_weekly_airings, .25, 4)). No smoothing. Train supply=0,target>0 gives
+multiplier 2; both zero gives 1. Airing supply counts any positive overlap with
+the window. Popularity fills short/empty lists. Saved v6_3 holdout scores and
+frequency scores are compared on the SAME users under all-watched MAP@5.
+Write submission_v9_freq.csv before starting C.
+
+C keeps the v6_3 size-200/weekly/stacked/five-seed recipe, adds four coverage
+features, and compares binary all-watched versus >=one 80%-covered airing
+labels. Evaluation/early stopping ALWAYS uses mean-fold ALL-WATCHED MAP@5;
+the changed labels affect fitting only. Original user holdout is preserved.
+Best label variant is refit on 100%, producing submission_v9_ltr.csv.
+
+C is skipped if its conservative estimate exceeds 40 minutes or time left
+before the upload reserve. Observed fit times update the estimate; per-tree
+callbacks enforce the absolute deadline and C's wall-clock limit. Partial
+ensembles are never written. If C is skipped, B remains ready for submission.
+
+Idea credit: the per-airing coverage definition and the clipped airtime multiplier come from an approach described by classmate Vladimir Kuznetsov. No code or files were shared.
+Current time 2026-10-24T12:09:40.633353+03:00; deadline 2026-10-24T15:00:00+03:00; upload reserve begins 2026-10-24T14:50:00+03:00
+Coverage means: positively viewed airings; all-airing mean also cached. Supply=0 policies: target>0 -> multiplier2; both0 ->1.
+  raw chunk 1: 200,000 past-only sessions
+  raw chunk 2: 200,000 past-only sessions
+  raw chunk 3: 200,000 past-only sessions
+  raw chunk 4: 200,000 past-only sessions
+  raw chunk 5: 200,000 past-only sessions
+  raw chunk 6: 200,000 past-only sessions
+  raw chunk 7: 200,000 past-only sessions
+  raw chunk 8: 200,000 past-only sessions
+  raw chunk 9: 200,000 past-only sessions
+  raw chunk 10: 200,000 past-only sessions
+  raw chunk 11: 200,000 past-only sessions
+  raw chunk 12: 200,000 past-only sessions
+  raw chunk 13: 200,000 past-only sessions
+  raw chunk 14: 200,000 past-only sessions
+  raw chunk 15: 200,000 past-only sessions
+  raw chunk 16: 200,000 past-only sessions
+  raw chunk 17: 200,000 past-only sessions
+  raw chunk 18: 200,000 past-only sessions
+  raw chunk 19: 200,000 past-only sessions
+  raw chunk 20: 200,000 past-only sessions
+  raw chunk 21: 200,000 past-only sessions
+  raw chunk 22: 200,000 past-only sessions
+  raw chunk 23: 200,000 past-only sessions
+  raw chunk 24: 200,000 past-only sessions
+  raw chunk 25: 200,000 past-only sessions
+  raw chunk 26: 200,000 past-only sessions
+  raw chunk 27: 200,000 past-only sessions
+  raw chunk 28: 200,000 past-only sessions
+  raw chunk 29: 200,000 past-only sessions
+  raw chunk 30: 21,987 past-only sessions
+  interval union: 5,821,987 sessions -> 5,441,773 disjoint user/channel intervals
+  schedules ['11-20', '21-30']: 236,837 unique labelled airings; full durations retained
+A window train20: [2020-03-09, 2020-07-27)
+  3,014,157 positive user/airing rows; 1,371,697 user/item pairs; n50=938,133, n80=611,757
+  saved /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step9/train20
+A window train10: [2020-03-09, 2020-05-18)
+  1,823,893 positive user/airing rows; 856,917 user/item pairs; n50=515,512, n80=316,413
+  saved /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step9/train10
+A window train15: [2020-03-09, 2020-06-22)
+  2,363,104 positive user/airing rows; 1,091,819 user/item pairs; n50=709,981, n80=451,455
+  saved /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step9/train15
+A window label10: [2020-05-18, 2020-07-27)
+  1,191,015 positive user/airing rows; 659,890 user/item pairs; n50=422,496, n80=295,044
+  saved /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step9/label10
+A window label5: [2020-06-22, 2020-07-27)
+  651,317 positive user/airing rows; 398,586 user/item pairs; n50=228,104, n80=160,262
+  saved /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/out/cache/step9/label5
+  schedules ['31-42']: 144,517 unique labelled airings; full durations retained
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v9_freq.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 384
+    pool_size: 6636
+B: SAME-USER HOLDOUT MAP@5, ALL-WATCHED
+            method evaluation_target  map_fold10  map_fold5  mean_map  users_fold10  users_fold5
+v6_3_saved_holdout       all-watched    0.731092   0.640175  0.685634           960          946
+coverage_frequency       all-watched    0.630444   0.555459  0.592951           960          946
+B READY: submission_v9_freq.csv — upload is performed by the user before 15:00
+C conservative initial estimate: 31.9 min; hard cap 40 min
+  reused fold10: 1,856,655 cached candidates, 29 base features
+  reused fold5: 1,829,523 cached candidates, 29 base features
+  reused final: 521,642 cached candidates, 29 base features
+C fold10: all-watched positives=217,231; coverage80 positives=81,580; fixed cached candidates
+C fold5: all-watched positives=161,164; coverage80 positives=57,462; fixed cached candidates
+  fitting coverage LTR binary, seed 12345
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.67149
+[50]	valid_0's mean_fold_map5: 0.677185
+[75]	valid_0's mean_fold_map5: 0.682239
+[100]	valid_0's mean_fold_map5: 0.684796
+[125]	valid_0's mean_fold_map5: 0.685692
+[150]	valid_0's mean_fold_map5: 0.686148
+[175]	valid_0's mean_fold_map5: 0.686339
+[200]	valid_0's mean_fold_map5: 0.68653
+[225]	valid_0's mean_fold_map5: 0.687089
+[250]	valid_0's mean_fold_map5: 0.686808
+Early stopping, best iteration is:
+[208]	valid_0's mean_fold_map5: 0.687477
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 13.7 min
+  fitting coverage LTR binary, seed 12346
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671231
+[50]	valid_0's mean_fold_map5: 0.678234
+[75]	valid_0's mean_fold_map5: 0.682236
+[100]	valid_0's mean_fold_map5: 0.683104
+[125]	valid_0's mean_fold_map5: 0.684288
+[150]	valid_0's mean_fold_map5: 0.684653
+[175]	valid_0's mean_fold_map5: 0.684932
+[200]	valid_0's mean_fold_map5: 0.685658
+[225]	valid_0's mean_fold_map5: 0.68601
+[250]	valid_0's mean_fold_map5: 0.686407
+[275]	valid_0's mean_fold_map5: 0.686203
+[300]	valid_0's mean_fold_map5: 0.686589
+[325]	valid_0's mean_fold_map5: 0.686178
+Early stopping, best iteration is:
+[297]	valid_0's mean_fold_map5: 0.687022
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 16.1 min
+  fitting coverage LTR binary, seed 12347
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.672638
+[50]	valid_0's mean_fold_map5: 0.677637
+[75]	valid_0's mean_fold_map5: 0.681898
+[100]	valid_0's mean_fold_map5: 0.68401
+[125]	valid_0's mean_fold_map5: 0.684533
+[150]	valid_0's mean_fold_map5: 0.685436
+[175]	valid_0's mean_fold_map5: 0.684956
+[200]	valid_0's mean_fold_map5: 0.6848
+Early stopping, best iteration is:
+[152]	valid_0's mean_fold_map5: 0.685484
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 14.8 min
+  fitting coverage LTR binary, seed 12348
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.670088
+[50]	valid_0's mean_fold_map5: 0.676965
+[75]	valid_0's mean_fold_map5: 0.681334
+[100]	valid_0's mean_fold_map5: 0.683471
+[125]	valid_0's mean_fold_map5: 0.68385
+[150]	valid_0's mean_fold_map5: 0.684961
+[175]	valid_0's mean_fold_map5: 0.685294
+[200]	valid_0's mean_fold_map5: 0.685264
+[225]	valid_0's mean_fold_map5: 0.685962
+[250]	valid_0's mean_fold_map5: 0.685798
+[275]	valid_0's mean_fold_map5: 0.685836
+[300]	valid_0's mean_fold_map5: 0.685594
+Early stopping, best iteration is:
+[262]	valid_0's mean_fold_map5: 0.686253
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 13.6 min
+  fitting coverage LTR binary, seed 12349
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.671987
+[50]	valid_0's mean_fold_map5: 0.679247
+[75]	valid_0's mean_fold_map5: 0.681789
+[100]	valid_0's mean_fold_map5: 0.683583
+[125]	valid_0's mean_fold_map5: 0.683732
+[150]	valid_0's mean_fold_map5: 0.68481
+[175]	valid_0's mean_fold_map5: 0.685345
+[200]	valid_0's mean_fold_map5: 0.686591
+[225]	valid_0's mean_fold_map5: 0.685126
+Early stopping, best iteration is:
+[197]	valid_0's mean_fold_map5: 0.686656
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 12.4 min
+C VALIDATION: {"label": "binary", "map_fold10": 0.73090625, "map_fold5": 0.6421837561663143, "mean_map": 0.6865450030831571, "iterations": {"12345": 208, "12346": 297, "12347": 152, "12348": 262, "12349": 197}}
+  fitting coverage LTR coverage80, seed 12345
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.665394
+[50]	valid_0's mean_fold_map5: 0.669264
+[75]	valid_0's mean_fold_map5: 0.671221
+[100]	valid_0's mean_fold_map5: 0.675645
+[125]	valid_0's mean_fold_map5: 0.676022
+[150]	valid_0's mean_fold_map5: 0.676269
+[175]	valid_0's mean_fold_map5: 0.676139
+[200]	valid_0's mean_fold_map5: 0.675658
+Early stopping, best iteration is:
+[164]	valid_0's mean_fold_map5: 0.676646
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 11.1 min
+  fitting coverage LTR coverage80, seed 12346
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.665051
+[50]	valid_0's mean_fold_map5: 0.669769
+[75]	valid_0's mean_fold_map5: 0.671799
+[100]	valid_0's mean_fold_map5: 0.673906
+[125]	valid_0's mean_fold_map5: 0.67536
+[150]	valid_0's mean_fold_map5: 0.676357
+[175]	valid_0's mean_fold_map5: 0.676594
+[200]	valid_0's mean_fold_map5: 0.676166
+Early stopping, best iteration is:
+[161]	valid_0's mean_fold_map5: 0.677033
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 9.9 min
+  fitting coverage LTR coverage80, seed 12347
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.664085
+[50]	valid_0's mean_fold_map5: 0.669211
+[75]	valid_0's mean_fold_map5: 0.670099
+[100]	valid_0's mean_fold_map5: 0.673017
+[125]	valid_0's mean_fold_map5: 0.672894
+[150]	valid_0's mean_fold_map5: 0.674019
+[175]	valid_0's mean_fold_map5: 0.674266
+[200]	valid_0's mean_fold_map5: 0.675415
+[225]	valid_0's mean_fold_map5: 0.675626
+[250]	valid_0's mean_fold_map5: 0.675688
+[275]	valid_0's mean_fold_map5: 0.676071
+[300]	valid_0's mean_fold_map5: 0.676568
+[325]	valid_0's mean_fold_map5: 0.676613
+[350]	valid_0's mean_fold_map5: 0.67686
+[375]	valid_0's mean_fold_map5: 0.675136
+Early stopping, best iteration is:
+[349]	valid_0's mean_fold_map5: 0.677044
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 9.3 min
+  fitting coverage LTR coverage80, seed 12348
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.665504
+[50]	valid_0's mean_fold_map5: 0.67011
+[75]	valid_0's mean_fold_map5: 0.672393
+[100]	valid_0's mean_fold_map5: 0.675617
+[125]	valid_0's mean_fold_map5: 0.675448
+[150]	valid_0's mean_fold_map5: 0.675246
+Early stopping, best iteration is:
+[109]	valid_0's mean_fold_map5: 0.676162
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 8.0 min
+  fitting coverage LTR coverage80, seed 12349
+/Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/.venv/lib/python3.14/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+Training until validation scores don't improve for 50 rounds
+[25]	valid_0's mean_fold_map5: 0.665289
+[50]	valid_0's mean_fold_map5: 0.668594
+[75]	valid_0's mean_fold_map5: 0.672582
+[100]	valid_0's mean_fold_map5: 0.675044
+[125]	valid_0's mean_fold_map5: 0.675986
+[150]	valid_0's mean_fold_map5: 0.676037
+Early stopping, best iteration is:
+[116]	valid_0's mean_fold_map5: 0.676392
+Evaluated only: mean_fold_map5
+  updated C remaining estimate 6.7 min
+C VALIDATION: {"label": "coverage80", "map_fold10": 0.7256857638888888, "map_fold5": 0.6259416842847075, "mean_map": 0.6758137240867982, "iterations": {"12345": 164, "12346": 161, "12347": 349, "12348": 109, "12349": 116}}
+C selected by mean-fold ALL-WATCHED MAP: {"label": "binary", "map_fold10": 0.73090625, "map_fold5": 0.6421837561663143, "mean_map": 0.6865450030831571, "iterations": {"12345": 208, "12346": 297, "12347": 152, "12348": 262, "12349": 197}}
+  wrote /Users/anastasiazaporozec/Desktop/RecSys-LLMs/exam/submission_v9_ltr.csv
+    rows: 1260
+    template_rows: 1260
+    five_ids_every_row: True
+    distinct_ids_every_row: True
+    all_ids_in_pool: True
+    order_matches_template: True
+    zero_ids: 0
+    distinct_programmes_used: 133
+    pool_size: 6636
+C FEATURE IMPORTANCES
+                         feature     mean_gain
+                   exposure_rank 597083.726676
+         user_item_days_per_week  70809.582291
+                        ppr_rank  55806.993533
+      user_item_airings_per_week  55372.227454
+       popularity_users_per_week  36836.997979
+         target_airings_per_week  19523.227064
+    global_item_seconds_per_week  19503.309809
+         user_item_channel_share  19189.218489
+           n50_per_training_week  18138.515391
+            target_week_coverage  16542.147396
+     E168_recent_per_target_week  14708.678119
+  exposure_score_per_target_week   9453.088028
+             user_category_share   8113.643981
+                       ppr_score   6487.075121
+         target_airtime_per_week   4904.413363
+                      category_3   4325.723355
+  sqrt_clipped_airing_multiplier   4271.508505
+last2weeks_item_seconds_per_week   3452.925002
+            airtime_ratio_weekly   2834.643180
+            mean_airing_coverage   2315.712383
+                      category_5   1800.235553
+     last4weeks_seconds_per_week    584.584936
+            airs_first_two_weeks    511.509430
+      user_item_seconds_per_week    496.472305
+                      category_4    325.927962
+                      category_8    244.712870
+           n80_per_training_week    198.028074
+                      category_1    194.254921
+                      category_6    108.612820
+                      category_2     97.387730
+                 is_new_for_user     37.201326
+                      category_7      0.000000
+                      category_0      0.000000

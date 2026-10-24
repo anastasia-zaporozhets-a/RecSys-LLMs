@@ -1,0 +1,21 @@
+{
+  "idea_credit": "Idea credit: the per-airing coverage definition and the clipped airtime multiplier come from an approach described by classmate Vladimir Kuznetsov. No code or files were shared.",
+  "deadline": "2026-10-24T15:00:00+03:00",
+  "work_end": "2026-10-24T14:50:00+03:00",
+  "frequency_ready": true,
+  "C": "completed; submission_v9_ltr.csv ready",
+  "designated_final_so_far": "submission_v6_3.csv",
+  "C_result": {
+    "label": "binary",
+    "map_fold10": 0.73090625,
+    "map_fold5": 0.6421837561663143,
+    "mean_map": 0.6865450030831571,
+    "iterations": {
+      "12345": 208,
+      "12346": 297,
+      "12347": 152,
+      "12348": 262,
+      "12349": 197
+    }
+  }
+}

@@ -1,13 +1,26 @@
 # Current designated final submission
 
-**`submission_v6_3.csv`** is the designated final so far:
-**public 0.41907 / private 0.40253**, as reported by the user.
+**`submission_v9_ltr.csv`** is the final designated submission:
+**private 0.40591 / public 0.41903**, as reported by the user.
 
-The final comparison retains v6_3: v8_ens scored **public 0.41669 / private
-0.39991**, v7_1 **0.41615 / 0.40078**, and v7_2 **0.41519 / 0.39924**.
-None beat v6_3. The complete chronological submission table and documented
-submission count are in `out/final_summary.md`; the three-user comparisons
-are in `out/examples_final.md`.
+It improves private MAP@5 over v6_3 by **+0.00338** (public delta **-0.00004**).
+The no-training `submission_v9_freq.csv` scored **private 0.39494 / public
+0.41194** and was not selected.
+
+The winning Step 9 model retains the v6_3 size-200, weekly-scaled, stacked,
+five-seed LambdaRank recipe and adds **n50/week, n80/week, mean airing coverage,
+and the clipped square-root weekly-airing multiplier**. The original binary
+all-watched fitting labels won against the coverage80 label variant. Saved
+seed/tree counts are **12345/208, 12346/297, 12347/152, 12348/262, 12349/197**,
+followed by refitting on 100% of the training queries and averaging raw scores.
+
+## Previous designated submission: v6_3
+
+Before Step 9, v6_3 was retained over v8_ens (**public 0.41669 / private
+0.39991**), v7_1 **0.41615 / 0.40078**, and v7_2 **0.41519 / 0.39924**.
+None of those beat v6_3 (**public 0.41907 / private 0.40253**). The pre-Step-9
+chronological submission table and count are in `out/final_summary.md`;
+`out/examples_final.md` contains the historical three-user comparisons for v6_3.
 
 This is the Step 7 **all_together** recipe: size 200 per source, weekly-scaled
 features, both stacked folds, the new channel/time/season/recency features,
@@ -57,10 +70,12 @@ User-reported scores; screenshots saved by the user.
 
 | Submission | Public | Private |
 |---|---:|---:|
-| v6_3 — designated final | 0.41907 | 0.40253 |
+| v9_ltr — designated final | 0.41903 | 0.40591 |
+| v6_3 | 0.41907 | 0.40253 |
 | v7_1 | 0.41615 | 0.40078 |
 | v8_ens | 0.41669 | 0.39991 |
 | v7_2 | 0.41519 | 0.39924 |
+| v9_freq | 0.41194 | 0.39494 |
 | v6_1 | 0.40131 | 0.38529 |
 | v6_2 | Not reported | Not reported |
 | v5_ltr | 0.39205 | 0.37705 |
@@ -137,7 +152,7 @@ distinct recipes are refitted on all training queries at the selected tree
 counts, producing `submission_v7_1.csv` and `submission_v7_2.csv`.
 
 Both files improved validation by approximately 0.0035 but scored below v6_3
-on Kaggle. The designated final therefore remains `submission_v6_3.csv`.
+on Kaggle. v6_3 remained the designated final after Step 8.
 
 ## Final file-only rank-average ensemble
 
@@ -183,7 +198,25 @@ Deadline: **15:00 today, Europe/Kyiv**, with a default **10-minute upload reserv
 minutes** or the remaining work time; observed fit times update the estimate,
 and callbacks enforce the C/deadline limits. B remains available if C is skipped.
 The script builds/checks files; the user uploads them to Kaggle. No 31–42 viewing
-is used; the 31–42 schedule supplies airings only. Step 9 has not yet been run.
+is used; the 31–42 schedule supplies airings only.
+
+### Completed Step 9 results
+
+Both files were generated and evaluated on Kaggle; the optional C stage
+completed. Validation values below are all-watched MAP@5 on the fixed shared
+user holdouts (960 users in fold10, 946 in fold5):
+
+| Configuration | Fold10 | Fold5 | Unweighted mean |
+|---|---:|---:|---:|
+| v6_3 saved reference | 0.731091725 | 0.640175300 | 0.685633512 |
+| v9_freq | 0.630443576 | 0.555458950 | 0.592951263 |
+| Coverage LTR, original binary labels — selected | 0.730906250 | 0.642183756 | 0.686545003 |
+| Coverage LTR, coverage80 labels | 0.725685764 | 0.625941684 | 0.675813724 |
+
+The binary-label coverage LTR won by mean-fold validation and achieved the
+best reported private Kaggle score, **0.40591**. Final designated file:
+**`submission_v9_ltr.csv`**. Run provenance and checks are archived in
+`out/step9_stdout.log`, `out/step9_result.json`, and the Step 9 validation CSVs.
 
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.
