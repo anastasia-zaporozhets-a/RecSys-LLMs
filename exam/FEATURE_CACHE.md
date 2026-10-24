@@ -112,3 +112,17 @@ The predeclared search evaluates at most 24 distinct five-seed configurations
 (duplicate controls/configurations reuse fits). Progress is written live to
 `out/step8_stdout.log`; trials, selection, importances and final configurations
 are saved as `out/step8_*` files. The selected models are in `out/step8_models/`.
+
+## Step 9 coverage caches
+
+`src/step9_coverage.py` reuses the Step 7 caches and stores newly unioned
+view intervals and per-window exact coverage under `out/cache/step9/`.
+It does not reuse summed-overlap fractions as union coverage. Positive
+user/airing rows are stored in compressed numeric arrays, pair statistics in
+compressed CSV, and full scheduled-airing counts separately. Unobserved rows
+have zero coverage. Model seed fits are cached separately when C runs.
+
+The per-airing coverage definition and clipped airtime multiplier are credited
+to classmate **Vladimir Kuznetsov**, who described his approach; **no code or
+files were shared**. Attribution and exact mean-coverage/window semantics are
+stored in coverage manifests and printed in the job log.

@@ -154,5 +154,36 @@ The reproducible script is `src/ensemble_final.py`, with input/output hashes
 and checks recorded in `out/ensemble_final.md`.
 Its Kaggle result was **public 0.41669 / private 0.39991**, also below v6_3.
 
+## Step 9: deadline-limited per-airing coverage experiment
+
+**Idea credit:** the per-airing coverage definition and the clipped airtime
+multiplier come from a description of his approach given to the user by
+classmate **Vladimir Kuznetsov**. **No code or files were shared.** The same
+attribution is printed in `out/step9_stdout.log`, saved with coverage cache
+metadata, and recorded in the committed planning log `out/step9_plan.md`.
+
+`src/step9_coverage.py` unions overlapping/adjacent raw view intervals globally
+per user/channel, including across CSV chunks, before joining labelled airings.
+Coverage is union-covered seconds divided by the **full airing duration**;
+the numerator is clipped to each observation window. n50/n80 count airings
+with at least 50%/80% coverage. Mean coverage is over positively viewed airings;
+an all-scheduled-airing mean is also cached for audit. Programme ID 0 is excluded.
+
+The no-training ranker is `n50 / training_weeks * sqrt(clip(target_weekly_airings /
+training_weekly_airings, 0.25, 4))`, with popularity fill/fallback. It writes
+`submission_v9_freq.csv` first, and reports both holdout folds next to the saved
+v6_3 reference on the same users. The optional LTR stage adds n50/week, n80/week,
+mean coverage and the multiplier to the cached v6_3 features, and compares
+all-watched versus >=one 80%-covered airing labels. Selection/early stopping
+remain mean-fold **all-watched** MAP@5. The winning label variant is refitted
+on all queries with five seeds and written to `submission_v9_ltr.csv`.
+
+Deadline: **15:00 today, Europe/Kyiv**, with a default **10-minute upload reserve**
+(work cutoff 14:50). C is skipped if its conservative estimate exceeds **40
+minutes** or the remaining work time; observed fit times update the estimate,
+and callbacks enforce the C/deadline limits. B remains available if C is skipped.
+The script builds/checks files; the user uploads them to Kaggle. No 31–42 viewing
+is used; the 31–42 schedule supplies airings only. Step 9 has not yet been run.
+
 Tested dependency: LightGBM **4.7.0**. On macOS its OpenMP runtime is installed
 with `brew install libomp`.
